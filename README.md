@@ -2,24 +2,25 @@
 
 > "personally, customized bot with langchain and gpt4"
 
-- 1. Infra
+1. Infra
     - [ ] fastapi serving
     - [ ] vector database: FAISS to [milvus](https://milvus.io/)
     - [ ] cloud flare serving
-- 2. Auth
+2. Auth
     - [ ] oauth2 login
     - [ ] manage quota
-- 3. Domain
+3. Domain
     - [ ] POST / DELETE `/room`
     - [ ] Web socket chat
     - [ ] Payment
-- 4. Etc
+4. Etc
     - [x] dotenv python
-    - [ ] manage chatGPT credit issue (429)
+    - [x] manage chatGPT credit issue (429)
 
 
 ## init
-```
+
+```sh
 $ poetry init
 $ poetry env use python3.8
 $ poetry add langchain faiss-cpu
