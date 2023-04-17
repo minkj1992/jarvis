@@ -10,7 +10,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 
-cfg:OrderedDict = dotenv_values(".env")
+CFG:OrderedDict = dotenv_values(".env")
 
 def extract_text_from(url):
     html = requests.get(url).text
@@ -20,7 +20,7 @@ def extract_text_from(url):
     return '\n'.join(line for line in lines if line)
 
 def get_xml():
-    sitemap = cfg.get("SITEMAP")
+    sitemap = CFG.get("SITEMAP")
     xml = requests.get(sitemap).text
     return xmltodict.parse(xml)
     
@@ -44,7 +44,7 @@ def get_doc_and_metadata(pages):
     return docs, metadatas
 
 def write_to_pickle(docs, metadatas):
-    openai_key = cfg.get("OPENAI_API_KEY")
+    openai_key = CFG.get("OPENAI_API_KEY")
     openai_model="text-embedding-ada-002"
     
     store = FAISS.from_texts(
@@ -61,7 +61,7 @@ def write_to_pickle(docs, metadatas):
 
 def run(raw_xml):
     MAX_URL_SIZE = 100 # TODO: add quota system
-    filter_domain = cfg.get("FILTER")
+    filter_domain = CFG.get("FILTER")
     urls = raw_xml['urlset']['url'][:MAX_URL_SIZE]
     pages = []
     for i, info in enumerate(urls):
