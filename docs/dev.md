@@ -7,6 +7,7 @@
 
 - [openai's vector_database](https://github.com/openai/openai-cookbook/blob/main/examples/vector_databases/Using_vector_databases_for_embeddings_search.ipynb)
 - [openai's redis example](https://github.com/openai/openai-cookbook/blob/main/examples/vector_databases/redis/getting-started-with-redis-and-openai.ipynb)
+- [LangChain Redis docs](https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/redis.html)
 
 
 `Partners`
