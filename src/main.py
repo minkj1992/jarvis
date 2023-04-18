@@ -1,10 +1,11 @@
 import logging
 
 import aioredis
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseSettings
 
-from src.app.api import greet
+from app.api import greet
 
 
 class Config(BaseSettings):
@@ -23,3 +24,6 @@ app.include_router(greet.router)
 @app.on_event("startup")
 async def startup():
     aioredis.from_url(cfg.redis_url, encoding="utf8", decode_responses=True)
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
