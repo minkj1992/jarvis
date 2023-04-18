@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  app:
+    restart: always
+    build: .
+    command: poetry run uvicorn main:app --reload --workers 1 --host=0.0.0.0 --port 8000
+    ports:
+      - "8080:8000"
+    # volumes:
+    #   - $PWD/src:/src
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
+    driver: local
