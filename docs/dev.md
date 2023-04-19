@@ -25,6 +25,7 @@ api_key: str
 
 `Room`
 uuid
+title
 partner_uuid
 question_template: str
 vector_storage : HASH data type

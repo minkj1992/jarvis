@@ -5,10 +5,13 @@ from pydantic import BaseSettings
 
 # BaseSettings automatically bind os.environ with lowercase()
 class Cfg(BaseSettings):
-    # The default URL expects the app to run using Docker and docker-compose.
     phase: str
     redis_uri: str
     openai_api_key: str
+    openai_model: str
+    max_crawl_page: int
+    max_text_limit: int
+    
 
 
 @lru_cache()

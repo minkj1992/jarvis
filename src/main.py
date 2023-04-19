@@ -1,19 +1,17 @@
-import logging
-import os
-
 import aioredis
 import uvicorn
 from fastapi import FastAPI
 
-from app.api import greet
+from app.api import crawl, greet, rooms
 from infra.config import get_config
 
-logger = logging.getLogger(__name__)
 cfg = get_config()
-
 app = FastAPI(title='Jarvis api server')
+
 redis = aioredis.from_url(cfg.redis_uri, decode_responses=True)
 app.include_router(greet.router)
+app.include_router(crawl.router)
+app.include_router(rooms.router)
 
 
 @app.on_event("startup")
