@@ -43,3 +43,52 @@ vector_storage : HASH data type
     - fastapi
 - [ ] Build web server api
     - [notion docs](https://minkj1992.notion.site/SiteGPT-db69971686ed4017a76c0db8a40cc52d)
+
+
+## Flow
+
+### 1. 사용자가 채팅방을 만드는 플로우
+
+1. website uri를 넣는다.
+2. 크롤러가 동작하여, 웹사이트를 긁어 모은다.
+3. 크롤러가 학습한다.
+4. 완료되면 학습한 데이터를 vector store로 redis hash에 넣어 room을 만든다.
+
+### 2. 사용자가 채팅하는 플로우
+
+1. /rooms에서 room_uuid을 선택한다.
+2. room_uuid를 통해 질문한다.
+3. redis hash에서 room_uuid를 통해 vector store를 가져온다.
+4. 질문에 대해서 template를 통해 chatgpt에게 물어본다.
+5. 받은 답을 bubble로 보낸다.
+
+## Design
+- [fastapi websocket](https://medium.com/@ahtishamshafi9906/how-to-build-a-simple-chat-application-in-fastapi-7bafad755654)
+
+### `/learn`
+> crawl with sitemap
+
+
+- **POST /learn**
+
+```
+{
+    uri
+    auth
+}
+```
+
+return site_uris
+
+
+### `/rooms`
+
+- **GET /rooms**
+- **POST /rooms**
+    1. crawl site
+    2. generate model
+    3. return room uuid
+
+
+
+
