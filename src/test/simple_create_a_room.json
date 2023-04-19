@@ -1,0 +1,15 @@
+{
+  "title": "레오의 블로그",
+  "urls": [
+    "https://minkj1992.github.io/categories/blockchain/",
+    "https://minkj1992.github.io/categories/",
+    "https://minkj1992.github.io/tags/dev/",
+    "https://minkj1992.github.io/categories/dfinity/",
+    "https://minkj1992.github.io/categories/icp/",
+    "https://minkj1992.github.io/categories/internet-computer/",
+    "https://minkj1992.github.io/"
+  ],
+  "kind_of_site": "blog",
+  "domains": ["develop", "it trend", "life"],
+  "dont_know_message": "Hmm, I'm not sure."
+}
