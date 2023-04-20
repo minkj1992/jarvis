@@ -27,7 +27,7 @@ api_key: str
 uuid
 title
 partner_uuid
-question_template: str
+room_template: str
 vector_storage : HASH data type
 
 ## 1. Without server

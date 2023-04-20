@@ -1,12 +1,16 @@
 version: "3.8"
 services:
   redis:
+    restart: always
     image: redis:latest
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
-
+    env_file:
+      - .env
+    # https://github.com/nextcloud/docker/issues/1608
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
   app:
     restart: always
     build: .

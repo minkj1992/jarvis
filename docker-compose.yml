@@ -2,10 +2,14 @@ version: "3.8"
 services:
   redis:
     image: redis:latest
+    restart: always
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    env_file:
+      - .env.dev
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
 
   app:
     restart: always

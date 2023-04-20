@@ -11,6 +11,8 @@ class Cfg(BaseSettings):
     openai_model: str
     max_crawl_page: int
     max_text_limit: int
+    redis_host: str
+    redis_password: str
     
 
 
