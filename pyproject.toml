@@ -20,6 +20,8 @@ transformers = "^4.28.1"
 fastapi = "^0.95.1"
 uvicorn = "^0.21.1"
 aioredis = "^2.0.1"
+redis = "^4.5.4"
+redis-om = "^0.1.2"
 
 
 [build-system]

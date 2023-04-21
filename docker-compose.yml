@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   redis:
-    image: redis:latest
+    image: redis/redis-stack-server:latest
     restart: always
     ports:
       - "6379:6379"
@@ -9,12 +9,11 @@ services:
       - redis-data:/data
     env_file:
       - .env.dev
-    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
-
+    command: /bin/sh -c "redis-stack-server --requirepass $$REDIS_PASSWORD"
   app:
-    restart: always
+    # restart: always
     build: .
-    command: poetry run uvicorn main:app --reload --workers 1 --host=0.0.0.0 --port 8000
+    command: poetry run uvicorn main:app --reload --workers 2 --host=0.0.0.0 --port 8000
     ports:
       - "8080:8000"
     env_file:
