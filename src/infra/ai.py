@@ -4,6 +4,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.prompts.prompt import PromptTemplate
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS, VectorStore
 
 from infra.config import get_config
@@ -33,6 +34,29 @@ answer_template = """Question: {question}
 =========
 Answer in Markdown:
 """
+
+# TODO: add quota system
+def _is_over_limit(cnt: int)-> bool:
+    return cnt >= _cfg.max_text_limit 
+        
+
+def get_docs_and_metadatas(pages):
+    text_splitter = CharacterTextSplitter(chunk_size=1500, separator="\n")
+    docs, metadatas = [], []
+
+    text_limit_counter = 0
+    for page in pages:
+        splits = text_splitter.split_text(page['text'])
+        txt_len = sum([len(s) for s in splits])
+
+        if _is_over_limit(text_limit_counter + txt_len):
+            break
+        docs.extend(splits)
+        metadatas.extend([dict(source=page['source'])]* len(splits))
+        text_limit_counter += txt_len    
+
+    return docs, metadatas # type hint: tuple(List[str],List[dict])
+
 
 
 def to_faiss(txts:List[str], metadatas:List[dict])-> FAISS:

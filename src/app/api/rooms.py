@@ -1,12 +1,13 @@
-import logging
-import uuid
-from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Union
 
+from aredis_om.model import NotFoundError
 from fastapi import APIRouter, HTTPException, status
 from pydantic import UUID4, BaseModel, Field, HttpUrl
+from starlette.responses import Response
 
-from infra import bs4, gpt
+from app.services import room_service
+from infra import ai, bs4
+from infra.redis import Room
 
 router = APIRouter(prefix='/rooms')
 
@@ -41,29 +42,37 @@ class CreateRoomResponse(BaseModel):
         response_model=CreateRoomResponse,
         )
 async def create(room_in: CreateRoomRequest,):
-    txt, metadatas = bs4.crawl(room_in.urls)
-    vec_store = gpt.to_faiss(txt, metadatas)
-    room_template: str = gpt.to_room_template(
+    pages = bs4.crawl(room_in.urls)
+    docs, metadatas = ai.get_docs_and_metadatas(pages)
+    
+
+    # vec_store = ai.to_faiss(docs, metadatas)
+
+    room_template: str = ai.to_room_template(
         room_in.kind_of_site,
         room_in.domains,
         room_in.dont_know_message,
     )
+    room_uuid = await room_service.create_a_room(
+        room_in.title,
+        room_template,
+        docs,
+        metadatas,
+        )
+    return CreateRoomResponse(room_uuid=room_uuid)
 
-    # TODO: save to redis
-    # 1. generate uuid
-    # 2. input all
-    # 3. generate question format
-    # 4. save it to redis
-    
-    # TODO: with background
-    # room_uuid = room_service.create_a_room(
-    #     room_uuid, 
-    #     room_in.title,
-    #     room_template,
-    #     vec_store,
-    #     )
+# TODO: partner_uuid
+# @router.get("/", status_code=200)
+# async def rooms(response: Response):
+#     # To retrieve this customer with its primary key, we use `Customer.get()`:
+#     return {"customers": [pk async for pk in await Customer.all_pks()]}
 
-    # TODO: change room_uuid
-    return CreateRoomResponse(room_uuid=uuid.uuid4())
 
-    
+@router.get("/{pk}", status_code=200)
+async def room(pk: str, response: Response):
+    try:
+        # chat
+        return await Room.get(pk)
+    except NotFoundError:
+        raise HTTPException(status_code=404, detail=f"Room not found: {pk}")
+

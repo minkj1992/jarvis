@@ -1,10 +1,9 @@
 import logging
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import requests
 import xmltodict
 from bs4 import BeautifulSoup
-from langchain.text_splitter import CharacterTextSplitter
 
 from infra.config import get_config
 
@@ -41,28 +40,6 @@ def _extract_text_from(url):
     lines = (line.strip() for line in text.splitlines())
     return '\n'.join(line for line in lines if line)
 
-# TODO: add quota system
-def _is_over_limit(cnt: int)-> bool:
-    return cnt >= cfg.max_text_limit 
-        
-
-def _get_txts_and_metadata(pages):
-    text_splitter = CharacterTextSplitter(chunk_size=1500, separator="\n")
-    txts, metadatas = [], []
-
-    text_limit_counter = 0
-    for page in pages:
-        splits = text_splitter.split_text(page['text'])
-        txt_len = sum([len(s) for s in splits])
-
-        if _is_over_limit(text_limit_counter + txt_len):
-            break
-        txts.extend(splits)
-        metadatas.extend([dict(source=page['source'])]* len(splits))
-        text_limit_counter += txt_len    
-        
-    # type hint: tuple(List[str],List[dict])
-    return txts, metadatas
 
 
 def crawl(urls: List[str]):
@@ -71,5 +48,4 @@ def crawl(urls: List[str]):
         logging.info(f"{i}th crawl: {url}")
         p = {'text': _extract_text_from(url), 'source': url} 
         pages.append(p)
-    
-    return _get_txts_and_metadata(pages)
+    return pages
