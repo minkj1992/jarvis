@@ -1,9 +1,12 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 
 from app.api import crawl, greet, rooms
+from chat import chat_server
 from infra.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -11,10 +14,27 @@ cfg = get_config()
 
 
 app = FastAPI(title='Jarvis api server')
-# TODO: cors and middleware and logging
+# Your CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/chat", chat_server)
+
 app.include_router(greet.router)
 app.include_router(crawl.router)
 app.include_router(rooms.router)
+
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/")
+async def get(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 
 @app.on_event("startup")

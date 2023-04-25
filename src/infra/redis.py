@@ -37,15 +37,23 @@ def _get_redis_url() -> str:
 
 
 
-async def from_texts(docs, metadatas, index_name):
+async def from_texts(docs, metadatas, index_name:UUID4):
     return await run_in_threadpool(
-        func=RedisVectorStore.from_texts, 
+        func=RedisVectorStoreForAsync.from_texts, 
         texts=docs,
         metadatas=metadatas,
-        embedding=embeddings,
-        index_name=index_name,
+        embedding=embedding,
+        index_name=str(index_name),
         redis_url=_get_redis_url())
-    
+
+
+async def get_vectorstore(index_name:UUID4):
+    return await run_in_threadpool(
+        func=RedisVectorStoreForAsync.from_existing_index,
+        embedding=embedding,
+        index_name=str(index_name),
+        redis_url=_get_redis_url()
+    )
 
 
 

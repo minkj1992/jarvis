@@ -1,23 +1,20 @@
 from typing import List
 
+from langchain.callbacks.base import AsyncCallbackManager
+from langchain.callbacks.streaming_aiter import AsyncIteratorCallbackHandler
 from langchain.chains import ConversationalRetrievalChain
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
+from langchain.chains.llm import LLMChain
+from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import FAISS, VectorStore
+from langchain.vectorstores import VectorStore
+from langchain.vectorstores.base import VectorStore
 
 from infra.config import get_config
 
 _cfg = get_config()
-
-base_condense_question_template = PromptTemplate.from_template(
-"""Given the following conversation and a follow up question, 
-rephrase the follow up question to be a standalone question.
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question:""")
 
 langchain_template = """You are an AI assistant for answering questions about {and_domains} {kind_of_site}. 
 You are given the following extracted parts of 
@@ -58,21 +55,6 @@ def get_docs_and_metadatas(pages):
     return docs, metadatas # type hint: tuple(List[str],List[dict])
 
 
-
-def to_faiss(txts:List[str], metadatas:List[dict])-> FAISS:
-    openai_key = _cfg.openai_api_key
-    openai_model=_cfg.openai_model
-    
-    return FAISS.from_texts(
-        txts, 
-        OpenAIEmbeddings(
-            model=openai_model,
-            openai_api_key=openai_key, 
-            max_retries=3,
-        ), 
-        metadatas=metadatas
-    )
-
 # to room_template
 def to_room_template(kind_of_site:str, domains:List[str], dont_know_msg:str) -> str:
     langchain_kwargs = {
@@ -88,23 +70,43 @@ def _from_room_template(room_template: str) -> PromptTemplate:
     return PromptTemplate(template=room_template, input_variables=["question", "context"])
 
 
-def get_chain(vs: VectorStore, room_template:str):
-    llm = OpenAI(temperature=0, openai_api_key=_cfg.openai_api_key)
-    return ConversationalRetrievalChain.from_llm(
-        llm,
-        vs.as_retriever(),
-        condense_question_prompt=base_condense_question_template,
-        qa_prompt=_from_room_template(room_template),
+# https://github.com/hwchase17/chat-langchain/blob/da80049ba8de632e45034aab46e52141b35b5a5c/query_data.py#L13
+async def get_chain(vs: VectorStore, room_template:str, question_handler, stream_handler):
+    manager = AsyncCallbackManager([])
+    question_manager = AsyncCallbackManager([question_handler])
+    stream_manager = AsyncCallbackManager([stream_handler])
+    qa_prompt = _from_room_template(room_template)
+
+    question_gen_llm = OpenAI(
+        temperature=0, 
+        openai_api_key=_cfg.openai_api_key, 
+        callback_manager=question_manager, 
+        verbose=True,
+    )
+    streaming_llm = OpenAI(
+        temperature=0, 
+        streaming=True, 
+        openai_api_key=_cfg.openai_api_key, 
+        callback_manager=stream_manager, 
+        verbose=True,
     )
 
-# maybe websocket
-# def chat():
-#     qa_chain = get_chain(vec_store)
-#     chat_history = [] # TODO: How to manage chat history
-#     print(f"Chat with the {HOST} bot:")
-#     while True:
-#         print("Your question:")
-#         question = input()
-#         result = qa_chain({"question": question, "chat_history": chat_history})
-#         chat_history.append((question, result["answer"]))
-#         print(f"AI: {result['answer']}")
+    question_generator = LLMChain(
+        llm=question_gen_llm,
+        prompt=CONDENSE_QUESTION_PROMPT,
+        callback_manager=manager,
+    )
+    doc_chain = load_qa_chain(
+        streaming_llm, 
+        chain_type="stuff", 
+        prompt=qa_prompt, 
+        callback_manager=manager,
+    )
+
+    
+    return ConversationalRetrievalChain(
+        retriever=vs.as_retriever(),
+        combine_docs_chain=doc_chain,
+        question_generator=question_generator,
+        callback_manager=manager,
+    )

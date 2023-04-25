@@ -1,7 +1,7 @@
 .PHONY: dev build up down destroy app-shell redis-shell
 
 dev:
-	poetry run uvicorn --host=127.0.0.1 src.main:app
+	poetry run uvicorn --host=127.0.0.1 main:app
 
 build:
 	docker compose build
