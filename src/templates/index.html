@@ -59,9 +59,8 @@
     }
   </style>
   <script>
-    // TODO: https://fastapi.tiangolo.com/advanced/websockets/#using-depends-and-others
-    // TOOD: sdk with room_uuid
-    const room_uuid = "9cc9c497-2460-49a4-a6f6-7f3a8b0c979b";
+    const room_uuid = {{ room_uuid | safe }};
+    // TODO: chat domain
     var ws = new WebSocket(`ws://localhost:8080/chat/${room_uuid}`);
     // Receive message from server word by word. Display the words as they are received.
     ws.onmessage = function (event) {

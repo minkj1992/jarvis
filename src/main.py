@@ -1,9 +1,8 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.templating import Jinja2Templates
 
 from app.api import crawl, greet, rooms
 from chat import chat_server
@@ -28,13 +27,6 @@ app.mount("/chat", chat_server)
 app.include_router(greet.router)
 app.include_router(crawl.router)
 app.include_router(rooms.router)
-
-templates = Jinja2Templates(directory="templates")
-
-@app.get("/")
-async def get(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
 
 
 @app.on_event("startup")

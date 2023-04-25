@@ -1,8 +1,11 @@
+import json
 import logging
 from uuid import UUID
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import (FastAPI, HTTPException, Request, WebSocket,
+                     WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 
 from app.services import room_service
 from app.wss.callback import (QuestionGenCallbackHandler,
@@ -19,10 +22,23 @@ chat_server.add_middleware(
 )
 
 
-# TODO: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
-# TODO: https://github.com/hwchase17/chat-langchain/blob/master/main.py
+templates = Jinja2Templates(directory="templates")
+
+
+@chat_server.get("/{room_uuid}")
+async def get(request: Request, room_uuid:str):
+    if not await room_service.is_room_exist(room_uuid):
+        raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
+    return templates.TemplateResponse("index.html", {"request": request, "room_uuid": json.dumps(room_uuid)})
+
+
+# REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
+# REFS: https://github.com/hwchase17/chat-langchain/blob/master/main.py
 @chat_server.websocket("/{room_uuid}")
 async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
+    if not await room_service.is_room_exist(room_uuid):
+        raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
+    
     await websocket.accept()
     question_handler = QuestionGenCallbackHandler(websocket)
     stream_handler = StreamingLLMCallbackHandler(websocket)
@@ -43,10 +59,6 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             # Construct a response
             start_resp = ChatResponse(sender="bot", message="", type="start")
             await websocket.send_json(start_resp.dict())
-
-            # result = qa_chain(
-            #                 {"question": question, "chat_history": chat_history}
-            #             )
 
             result = await qa_chain.acall(
                 {"question": question, "chat_history": chat_history}

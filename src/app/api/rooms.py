@@ -58,12 +58,6 @@ async def create(room_in: CreateRoomRequest,):
         )
     return CreateRoomResponse(room_uuid=room_uuid)
 
-# TODO: partner_uuid
-# @router.get("/", status_code=200)
-# async def rooms(response: Response):
-#     # To retrieve this customer with its primary key, we use `Customer.get()`:
-#     return {"customers": [pk async for pk in await Customer.all_pks()]}
-
 
 @router.get("/{pk}", status_code=200)
 async def room(pk: str, response: Response):
