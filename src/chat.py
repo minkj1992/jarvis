@@ -71,7 +71,7 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             logging.info("websocket disconnect")
             break
         except Exception as e:
-            logging.error(e)
+            logging.error(e, exc_info=True)
             resp = ChatResponse(
                 sender="bot",
                 message="Sorry, something went wrong. Try again.",
