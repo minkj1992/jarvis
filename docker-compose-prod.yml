@@ -1,27 +1,30 @@
-version: "3.8"
+version: "3.9"
 services:
   redis:
-    restart: always
     image: redis/redis-stack-server:latest
+    restart: always
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - redis-data:/var/lib/redis-stack
     env_file:
       - .env
-    # https://github.com/nextcloud/docker/issues/1608
-    command: /bin/sh -c "redis-stack-server --requirepass $$REDIS_PASSWORD"
+    command:
+      - "redis-stack-server"
+      - "--save 90 1"
+      - "--save 30 10"
+      - "--save 6 10000"
+      - "--requirepass ${REDIS_PASSWORD}"
   app:
     restart: always
     build: .
-    command: poetry run uvicorn main:app --reload --workers 3 --host=0.0.0.0 --port 8000
+    command: poetry run uvicorn main:app --workers 3 --host=0.0.0.0 --port 8000
     ports:
       - "8080:8000"
     env_file:
       - .env
     depends_on:
       - redis
-
 volumes:
   redis-data:
     driver: local
