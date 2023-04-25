@@ -1,22 +1,35 @@
 # https://python-dependency-injector.ets-labs.org/examples/fastapi-redis.html
 
 from functools import lru_cache
+from typing import Any, List
 
 from aredis_om.connections import get_redis_connection
 from aredis_om.model import Field, HashModel
 from fastapi.concurrency import run_in_threadpool
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.schema import BaseRetriever, Document
 from langchain.vectorstores.redis import Redis as RedisVectorStore
+from langchain.vectorstores.redis import RedisVectorStoreRetriever
 from pydantic import UUID4, HttpUrl
 
 from infra import config
 
 cfg = config.get_config()
-embeddings = OpenAIEmbeddings(
+embedding = OpenAIEmbeddings(
             model=cfg.openai_model,
             openai_api_key=cfg.openai_api_key, 
             max_retries=3
             )
+
+class RedisVectorStoreForAsync(RedisVectorStore):
+    def as_retriever(self, **kwargs: Any) -> BaseRetriever:
+        return RedisVectorStoreForAysncRetriever(vectorstore=self, **kwargs)
+
+class RedisVectorStoreForAysncRetriever(RedisVectorStoreRetriever):
+
+    async def aget_relevant_documents(self, query: str) -> List[Document]:
+        return self.get_relevant_documents(query)
+
 
 @lru_cache
 def _get_redis_url() -> str:
