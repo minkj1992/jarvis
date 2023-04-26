@@ -12,6 +12,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import VectorStore
 from langchain.vectorstores.base import VectorStore
 
+from infra.bs4 import extract_doc_metadata_from_url
 from infra.config import get_config
 
 _cfg = get_config()
@@ -37,22 +38,17 @@ def _is_over_limit(cnt: int)-> bool:
     return cnt >= _cfg.max_text_limit 
         
 
-def get_docs_and_metadatas(pages):
+def get_docs_and_metadatas(urls):
+    docs = []
+    metadatas = []
+    
     text_splitter = CharacterTextSplitter(chunk_size=1500, separator="\n")
-    docs, metadatas = [], []
-
-    text_limit_counter = 0
-    for page in pages:
-        splits = text_splitter.split_text(page['text'])
-        txt_len = sum([len(s) for s in splits])
-
-        if _is_over_limit(text_limit_counter + txt_len):
-            break
-        docs.extend(splits)
-        metadatas.extend([dict(source=page['source'])]* len(splits))
-        text_limit_counter += txt_len    
-
-    return docs, metadatas # type hint: tuple(List[str],List[dict])
+    for url in urls:
+        doc, metadata = extract_doc_metadata_from_url(url)
+        for chunk in text_splitter.split_text(doc):
+            docs.append(chunk)
+            metadatas.append(metadata)
+    return docs, metadatas
 
 
 # to room_template

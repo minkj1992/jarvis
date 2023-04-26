@@ -42,9 +42,7 @@ class CreateRoomResponse(BaseModel):
         response_model=CreateRoomResponse,
         )
 async def create(room_in: CreateRoomRequest,):
-    pages = bs4.crawl(room_in.urls)
-    docs, metadatas = ai.get_docs_and_metadatas(pages)
-    
+    docs, metadatas = ai.get_docs_and_metadatas(room_in.urls)
     room_template: str = ai.to_room_template(
         room_in.kind_of_site,
         room_in.domains,
