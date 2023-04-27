@@ -1,12 +1,11 @@
-# jarvis
+# `jarvis`
 
 > "personally, customized bot with langchain and gpt4"
 
 <div align='center'>
 
-<h4>click to play</h4>
-
-[![](https://user-images.githubusercontent.com/37536298/234824459-1e6f26f0-3b3b-462c-bb86-875f66879612.png)]("https://drive.google.com/file/d/1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW/view?usp=sharing")
+![](https://user-images.githubusercontent.com/37536298/234824459-1e6f26f0-3b3b-462c-bb86-875f66879612.png)
+<p><em>https://drive.google.com/file/d/1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW/view?usp=sharing</em></p>
 
 </div>
 
