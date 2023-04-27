@@ -2,21 +2,13 @@
 
 > "personally, customized bot with langchain and gpt4"
 
+<div align='center'>
 
-<div align="center">
+<h4>click to play</h4>
 
-<video  preload="auto" controls>
-   <source src="https://drive.google.com/uc?export=download&id=1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW" type='video/mp4'>
-</video>
-
-<video  width="80%" controls autoplay>
-    <source src="https://drive.google.com/file/d/1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW/view" type="video/mp4">    
-</video>
+[![](https://user-images.githubusercontent.com/37536298/234824459-1e6f26f0-3b3b-462c-bb86-875f66879612.png)]("https://drive.google.com/file/d/1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW/view?usp=sharing")
 
 </div>
-
-
-
 
 1. Infra
     - [ ] fastapi serving
