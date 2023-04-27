@@ -3,19 +3,31 @@
 > "personally, customized bot with langchain and gpt4"
 
 
-https://user-images.githubusercontent.com/37536298/234813177-bbf17792-77c4-4a33-a394-d613c0e85e86.mov
+<div align="center">
+
+<video  preload="auto" controls>
+   <source src="https://drive.google.com/uc?export=download&id=1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW" type='video/mp4'>
+</video>
+
+<video  width="80%" controls autoplay>
+    <source src="https://drive.google.com/file/d/1RWBf-6NVbwNbX5izffaLbD3TZnRH4jKW/view" type="video/mp4">    
+</video>
+
+</div>
+
+
 
 
 1. Infra
     - [ ] fastapi serving
-    - [ ] vector database: FAISS to [milvus](https://milvus.io/)
-    - [ ] cloud flare serving
+    - [ ] vector database: FAISS to [milvus](https://milvus.io/) or redis
+    - [ ] azure serving
 2. Auth
     - [ ] oauth2 login
     - [ ] manage quota
 3. Domain
     - [ ] POST / DELETE `/room`
-    - [ ] Web socket chat
+    - [x] Web socket chat
     - [ ] Payment
 4. Etc
     - [x] dotenv python
@@ -36,6 +48,3 @@ $ poetry add langchain faiss-cpu
 $ poetry config virtualenvs.in-project true
 $ poetry config virtualenvs.path "./.venv"
 ```
-
-
-## refs
