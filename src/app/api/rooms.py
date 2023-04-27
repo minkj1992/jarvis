@@ -6,7 +6,7 @@ from pydantic import UUID4, BaseModel, Field, HttpUrl
 from starlette.responses import Response
 
 from app.services import room_service
-from infra import ai, bs4
+from infra import ai
 from infra.redis import Room
 
 router = APIRouter(prefix='/rooms')

@@ -25,7 +25,7 @@ def get_sitemap(url) :
         sitemap = f'{url}sitemap.xml'
     else:
         sitemap = f'{url}/sitemap.xml'
-
+    
     xml = requests.get(sitemap, headers=get_fake_user_agent_header()).text
     return xml
 
@@ -55,39 +55,30 @@ def _get_content(raw_content):
         return None
 
 
-
-
-
 def extract_doc_metadata_from_url(url):
     # URL에서 HTML 문서를 가져옵니다.
     response = requests.get(url, headers=headers)
-    html = response.text
+    html = response.content
 
     # HTML 문서에서 metadata를 추출합니다.
     soup = BeautifulSoup(html, 'html.parser')
-    title = soup.find('title').get_text()
+    title = soup.find('title').get_text(),
 
-    r_author = soup.find('meta', attrs={'name': 'author'})
-    r_date = soup.find('meta', attrs={'name': 'date'})
-    r_category = soup.find('meta', attrs={'name': 'category'})
-    tags = [_get_content(tag) for tag in soup.find_all('meta', attrs={'name': 'tags'})]
-
-
-    # HTML 문서에서 본문을 추출합니다.
-    # 본문 추출을 위해, HTML 태그들을 제거합니다.
+    # HTML에서 javascript, css 태그 제거
+    for script in soup(["script", "style"]):
+        script.extract()
     text = soup.get_text()
-    text = re.sub(r'<.*?>', '', text)
+
+
+    # 줄 바꿈 문자 제거 및 스페이스로 대체
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    doc = '\n'.join(chunk for chunk in chunks if chunk)
+
 
     # 추출한 문서와 metadata를 반환합니다.
-    doc = text.strip()
-    metadata = [
-        title, 
-        _get_content(r_author), 
-        _get_content(r_date), 
-        _get_content(r_category)
-    ] + tags
-    metadata = [m for m in metadata if m]
-    metadata = ' '.join(metadata)
-
+    metadata = {
+        "source": url,
+        "title": title
+    }
     return doc, metadata
-
