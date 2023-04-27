@@ -14,4 +14,7 @@ RUN pip install poetry==1.4 && \
   poetry config virtualenvs.create false && \
   poetry install --no-dev --no-cache --no-ansi
 
+EXPOSE 80
+EXPOSE 443
+
 COPY ./src /src

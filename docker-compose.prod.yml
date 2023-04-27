@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: jarvis0redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/var/lib/redis-stack
+    env_file:
+      - .env
+    command:
+      - "redis-stack-server"
+      - "--save 90 1"
+      - "--save 30 10"
+      - "--save 6 10000"
+      - "--requirepass ${REDIS_PASSWORD}"
+  app:
+    image: jarvis0acr.azurecr.io/jarvis-api:latest
+    container_name: jarvis0api
+    build:
+      context: jarvis0context
+    restart: always
+    command: poetry run uvicorn main:app --workers 3 --host=0.0.0.0 --port 80
+    expose:
+      - "80"
+      - "443"
+    ports:
+      - "80:80"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+volumes:
+  redis-data:
+    # https://learn.microsoft.com/ko-kr/azure/storage/files/storage-files-introduction
+    driver: azure_file
+    driver_opts:
+      share_name: jarvis0redis
+      storage_account_name: jarvis0storage0account
