@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Jarvis Chat</title>
+  <title>{{ room_title | safe }} chat</title>
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
   <style>
     .chat-body {
@@ -136,7 +136,7 @@
 <body class="bg-black">
   <div class="chat-body card">
     <div class="card-body p-5">
-      <h4 class="card-title text-center text-xl font-medium">Jarvis Chat</h4>
+      <h4 class="card-title text-center text-xl font-medium">{{ room_title | safe }} chat</h4>
       <p class="card-text text-center text-sm" id="header"> Ask a question </p>
       <hr class="border-gray-500 mb-5" style="margin-top: 20px;">
       <div id="messages" class="overflow-auto" style="max-height: 500px;">

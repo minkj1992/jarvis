@@ -28,28 +28,26 @@ templates = Jinja2Templates(directory="templates")
 
 @chat_server.get("/{room_uuid}")
 async def get(request: Request, room_uuid:str):
-    if not await room_service.is_room_exist(room_uuid):
+    room = await room_service.get_a_room(room_uuid)
+    if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
-    return templates.TemplateResponse("index.html", {"request": request, "room_uuid": json.dumps(room_uuid)})
+    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title, "room_uuid": json.dumps(room_uuid)})
 
 
 # REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
 # REFS: https://github.com/hwchase17/chat-langchain/blob/master/main.py
 @chat_server.websocket("/{room_uuid}")
 async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
-    if not await room_service.is_room_exist(room_uuid):
+    room = await room_service.get_a_room(room_uuid)
+    if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     
     await websocket.accept()
     question_handler = QuestionGenCallbackHandler(websocket)
     stream_handler = StreamingLLMCallbackHandler(websocket)
     chat_history = []
-    room_uuid = UUID(room_uuid)
 
-    # chat uuid
-    qa_chain = await room_service.get_a_chat_room(room_uuid, question_handler, stream_handler)
-    
-
+    qa_chain = await room_service.get_a_chat_room_chain(room, question_handler, stream_handler)
     while True:
         try:
             # Receive and send back the client message
