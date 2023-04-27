@@ -10,7 +10,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.schema import BaseRetriever, Document
 from langchain.vectorstores.redis import Redis as RedisVectorStore
 from langchain.vectorstores.redis import RedisVectorStoreRetriever
-from pydantic import UUID4, HttpUrl
+from pydantic import UUID4
 
 from infra import config
 

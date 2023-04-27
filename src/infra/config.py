@@ -10,11 +10,10 @@ class Cfg(BaseSettings):
     openai_api_key: str
     openai_model: str
     max_crawl_page: int
-    max_text_limit: int
+    max_token_limit: int
     redis_host: str
     redis_password: str
     
-
 
 @lru_cache()
 def get_config():

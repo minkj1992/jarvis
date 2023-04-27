@@ -2,6 +2,7 @@ import json
 import logging
 from uuid import UUID
 
+import openai
 from fastapi import (FastAPI, HTTPException, Request, WebSocket,
                      WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,19 +54,28 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
         try:
             # Receive and send back the client message
             question = await websocket.receive_text()
-            resp = ChatResponse(sender="you", message=question, type="stream")
+            resp = ChatResponse(sender="Human", message=question, type="stream")
             await websocket.send_json(resp.dict())
 
             # Construct a response
-            start_resp = ChatResponse(sender="bot", message="", type="start")
+            start_resp = ChatResponse(sender="Assistant", message="", type="start")
             await websocket.send_json(start_resp.dict())
+            try:
+                result = await qa_chain.acall(
+                    {"question": question, "chat_history": chat_history}
+                )
+            except openai.error.InvalidRequestError as err:
+                logging.error(err)
+                # handle 4097 error clear chat_history and retry once again
+                chat_history = []
+                result = await qa_chain.acall(
+                    {"question": question, "chat_history": chat_history}
+                )
 
-            result = await qa_chain.acall(
-                {"question": question, "chat_history": chat_history}
-            )
+
             chat_history.append((question, result["answer"]))
 
-            end_resp = ChatResponse(sender="bot", message="", type="end")
+            end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
         except WebSocketDisconnect:
             logging.info("websocket disconnect")
@@ -73,7 +83,7 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
         except Exception as e:
             logging.error(e, exc_info=True)
             resp = ChatResponse(
-                sender="bot",
+                sender="Assistant",
                 message="Sorry, something went wrong. Try again.",
                 type="error",
             )
