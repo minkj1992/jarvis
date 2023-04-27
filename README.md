@@ -45,7 +45,8 @@ $ poetry config virtualenvs.path "./.venv"
 ## deploy
 > [azure docker compose](https://learn.microsoft.com/ko-kr/azure/container-instances/tutorial-docker-compose)
 
-**1. install az-cli**
+1. **install az-cli**
+
 ```sh
 $ brew update && brew install azure-cli
 $ az login
@@ -62,7 +63,7 @@ $ az group create --name jarvisRG --location koreacentral
 $ az acr create --resource-group jarvisRG --name jarvis0acr --sku Basic
 ```
 
-**3. Login to Container Registry**
+3. **Login to Container Registry**
 
 ```sh
 $ az acr login --name jarvis0acr
@@ -70,8 +71,9 @@ Login Succeeded
 ```
 
 4. **Update docker compose** `docker-compose.prod.yml` in jarvis
-    - 이미지 이름 앞에 Azure Container Registry의 로그인 서버 이름인 <acrName>.azurecr.io를 붙입니다.
-    - ports 매핑을 80:80으로 변경합니다.
+    - change docker compose image with `<acrName>.azurecr.io/<image_name>:<tag>`
+    - change ports mapping to 80:80
+    - expose 80
 
 
 5. **Docker push**
@@ -84,7 +86,7 @@ $ make deploy
 $ az acr repository show --name jarvis0acr --repository jarvis-api
 ```
 
-6. **Create an Azure context**
+1. **Create an Azure context**
     - `aci`: Azure Container Instances
 
 ```sh
@@ -96,7 +98,7 @@ Successfully created aci context "jarvis0context"
 $ docker context ls
 ```
 
-7. Create Azure file volume
+7. **Create Azure file volume**
     - [create a storage account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal)
     - `Standard_LRS` is the cheapest
 
