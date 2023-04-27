@@ -8,9 +8,9 @@ from infra import ai, redis
 
 logger = logging.getLogger(__name__)
 
-async def create_a_room(title, room_template, docs, metadatas):
+async def create_a_room(title, prompt, docs, metadatas):
     room_uuid = uuid.uuid4()
-    room = redis.Room(uuid=room_uuid, title=title, room_template=room_template)
+    room = redis.Room(uuid=room_uuid, title=title, prompt=prompt)
     
     await asyncio.gather(
         redis.from_texts(docs, metadatas, index_name=room_uuid), 
@@ -18,25 +18,22 @@ async def create_a_room(title, room_template, docs, metadatas):
     )
     return room_uuid
 
-async def is_room_exist(room_uuid):
+async def get_a_room(room_uuid):
     try:
         room_uuid = uuid.UUID(room_uuid)
     except ValueError:
-        return False
-
+        return None
+    
     try:
-        _ = await redis.Room.get(room_uuid)
+        room = await redis.Room.get(room_uuid)
     except Exception as err:
         logging.error(err)
-        return False
-    
-    return True
+        return None
+    return room
 
 
 
-async def get_a_chat_room(room_uuid: UUID4, question_handler, stream_handler):
-    # 1. get a room template from redis
-    # 2. get a room vectore store from redis
-    room = await redis.Room.get(room_uuid)
-    vectorstore = await redis.get_vectorstore(room_uuid)
-    return await ai.get_chain(vectorstore, room.room_template, question_handler, stream_handler)
+async def get_a_chat_room_chain(room: redis.Room, question_handler, stream_handler):
+    vectorstore = await redis.get_vectorstore(room.uuid)
+    qa_cahin = await ai.get_chain(vectorstore, room.prompt, question_handler, stream_handler)
+    return qa_cahin

@@ -18,17 +18,9 @@ class CreateRoomRequest(BaseModel):
 
     urls: List[HttpUrl] = Field(title="챗봇이 학습할 사이트들", description="POST /pages에서 url들을 추출하여 전달하면 된다.")
     
-    # TODO: enum
-    kind_of_site: Union[str, None] = Field(
-        default="blog", title="챗봇이 학습할 사이트 형태", description="예를 들면 블로그, 뉴스, 회사소개 등과 같이 전달해주면 된다."
-    )
-    domains: List[str] = Field(
-        default=[], 
-        title="챗봇이 학습할 사이트가 다루고 있는 키워드 또는 관련 주제", 
-        description='예를들면 다음과 같이 전달해주면 된다. ["blockchain", "IT trend", "software develop"]'
-    )
-    dont_know_message: Union[str, None] = Field(
-        default="Hmm, I'm not sure.", title="챗봇이 잘 모를때 반응 문구", description="챗봇이 학습한 내용과 관련이 없거나, 챗봇이 알 수 없는 질문을 할 경우 답변 양식입니다."
+    prompt: Union[str, None] = Field(
+        default=ai.DEFAULT_PROMPT_TEMPLATE, 
+        title="챗봇이 QA할 prompt",
     )
 
 
@@ -43,14 +35,9 @@ class CreateRoomResponse(BaseModel):
         )
 async def create(room_in: CreateRoomRequest,):
     docs, metadatas = ai.get_docs_and_metadatas(room_in.urls)
-    room_template: str = ai.to_room_template(
-        room_in.kind_of_site,
-        room_in.domains,
-        room_in.dont_know_message,
-    )
     room_uuid = await room_service.create_a_room(
         room_in.title,
-        room_template,
+        room_in.prompt,
         docs,
         metadatas,
         )
@@ -60,7 +47,6 @@ async def create(room_in: CreateRoomRequest,):
 @router.get("/{pk}", status_code=200)
 async def room(pk: str, response: Response):
     try:
-        # chat
         return await Room.get(pk)
     except NotFoundError:
         raise HTTPException(status_code=404, detail=f"Room not found: {pk}")

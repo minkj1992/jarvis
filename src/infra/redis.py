@@ -60,7 +60,7 @@ async def get_vectorstore(index_name:UUID4):
 class Room(HashModel):
     uuid: UUID4 = Field(primary_key=True, index=True)
     title: str
-    room_template: str
+    prompt: str
 
     class Meta:
         database = get_redis_connection(
@@ -68,9 +68,4 @@ class Room(HashModel):
             encoding="utf-8", 
             decode_responses=True
         )
-
-    
-    def room_index(self):
-        return f'rooms-{self.uuid}'
-    
     
