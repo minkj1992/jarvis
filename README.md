@@ -2,6 +2,10 @@
 
 > "personally, customized bot with langchain and gpt4"
 
+
+https://user-images.githubusercontent.com/37536298/234813177-bbf17792-77c4-4a33-a394-d613c0e85e86.mov
+
+
 1. Infra
     - [ ] fastapi serving
     - [ ] vector database: FAISS to [milvus](https://milvus.io/)
@@ -33,24 +37,5 @@ $ poetry config virtualenvs.in-project true
 $ poetry config virtualenvs.path "./.venv"
 ```
 
-## run
-
-**generate embedding model**
-
-```sh
-$ poetry run python learn.py
-```
-
-**ask query to gpt**
-
-```sh
-$ poetry run python ask.py \
---question='What is ICP?'
-
-> Finished chain.
-Answer:  ICP stands for Interchain Protocol and is a blockchain protocol that can host fully-on chain dapps.
-
-Sources: https://minkj1992.github.io/categories/icp/, https://minkj1992.github.io/ledger_canister/, https://minkj1992.github.io/icp_dao/
-```
 
 ## refs
