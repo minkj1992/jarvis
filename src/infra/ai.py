@@ -20,7 +20,7 @@ DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the q
 {context}
 
 Question: {question}
-Answer in Markdown:"""
+!IMPORTANT Answer in korean:"""
 
 
 
