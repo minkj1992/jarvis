@@ -2,6 +2,7 @@ version: "3.9"
 services:
   redis:
     image: redis/redis-stack-server:latest
+    container_name: jarvis0redis
     restart: always
     ports:
       - "6379:6379"
@@ -22,7 +23,7 @@ services:
       - ./src:/src/
       - ./poetry.lock:/src/poetry.lock
       - ./pyproject.toml:/src/pyproject.toml
-    command: poetry run uvicorn main:app --workers 2 --host=0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --workers 2 --host=0.0.0.0 --port 8000 --reload
     ports:
       - "8080:8000"
     env_file:

@@ -23,9 +23,8 @@ async def get_a_room(room_uuid):
         room_uuid = uuid.UUID(room_uuid)
     except ValueError:
         return None
-    
     try:
-        room = await redis.Room.get(room_uuid)
+        room = await redis.Room.get(pk=room_uuid)
     except Exception as err:
         logging.error(err)
         return None

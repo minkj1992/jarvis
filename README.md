@@ -60,20 +60,18 @@ $ az login
 ```sh
 $ az group create --name jarvisRG --location koreacentral
 # only lowercase and number
-$ az acr create --resource-group jarvisRG --name jarvis0acr --sku Basic
+$ az acr create --resource-group jarvisRG --name jarvisgptacr --sku Basic
 ```
 
 3. **Login to Container Registry**
 
 ```sh
-$ az acr login --name jarvis0acr
+$ az acr login --name jarvisgptacr
 Login Succeeded
 ```
 
 4. **Update docker compose** `docker-compose.prod.yml` in jarvis
     - change docker compose image with `<acrName>.azurecr.io/<image_name>:<tag>`
-    - change ports mapping to 80:80
-    - expose 80
 
 
 5. **Docker push**
@@ -83,10 +81,10 @@ Username: minkj1992
 Password: 
 Login Succeeded
 $ make deploy
-$ az acr repository show --name jarvis0acr --repository jarvis-api
+$ az acr repository show --name jarvisgptacr --repository jarvis-api
 ```
 
-1. **Create an Azure context**
+6. **Create an Azure context**
     - `aci`: Azure Container Instances
 
 ```sh
@@ -120,12 +118,70 @@ $ docker --context jarvis0context volume ls
 ```
 
 8. **deploy**
-    - TODO: need to handle a error below
+
 
 ```sh
 $ make prod-up
-
-cannot get container logs: containerinstance.ContainersClient#ListLogs: Failure responding to request: StatusCode=404 -- Original Error: autorest/azure: Service returned an error. Status=404 Code="ResourceNotFound" Message="The Resource 'Microsoft.ContainerInstance/containerGroups/jarvis0api' under resource group 'jarvisRG' was not found. For more details please go to https://aka.ms/ARMResourceNotFoundFix"
 # make prod-down
 ```
 
+
+## debug
+
+```
+az container show --resource-group jarvisRG --name jarvis --output table
+```
+
+```
+az container logs --resource-group jarvisRG --name jarvis --container-name jarvis-redis
+az container logs --resource-group jarvisRG --name jarvis --container-name jarvis-api
+az container logs --resource-group jarvisRG --name jarvis --container-name aci--dns--sidecar
+```
+
+
+- [acr task](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-tutorial-quick-task)
+
+```
+RES_GROUP=jarvisRG
+ACR_NAME=jarvisgptacr
+IMAGE_NAME_TAG_=jarvis_app:v1
+AKV_NAME=$ACR_NAME-vault
+
+
+
+az acr build --registry $ACR_NAME --image jarvisgptacr.azurecr.io/$IMAGE_NAME_TAG_ .
+
+# Create a key vault
+az keyvault create --resource-group $RES_GROUP --name $AKV_NAME
+# Create service principal, store its password in AKV (the registry *password*)
+az keyvault secret set \
+  --vault-name $AKV_NAME \
+  --name $ACR_NAME-pull-pwd \
+  --value $(az ad sp create-for-rbac \
+                --name $ACR_NAME-pull \
+                --scopes $(az acr show --name $ACR_NAME --query id --output tsv) \
+                --role acrpull \
+                --query password \
+                --output tsv)
+
+# Store service principal ID in AKV (the registry *username*)
+az keyvault secret set \
+    --vault-name $AKV_NAME \
+    --name $ACR_NAME-pull-usr \
+    --value $(az ad sp list --display-name $ACR_NAME-pull --query '[].appId' --output tsv)
+
+az container create \
+    --resource-group $RES_GROUP \
+    --name acr-tasks \
+    --image $ACR_NAME.azurecr.io/$IMAGE_NAME_TAG_ \
+    --registry-login-server $ACR_NAME.azurecr.io \
+    --registry-username $(az keyvault secret show --vault-name $AKV_NAME --name $ACR_NAME-pull-usr --query value -o tsv) \
+    --registry-password $(az keyvault secret show --vault-name $AKV_NAME --name $ACR_NAME-pull-pwd --query value -o tsv) \
+    --dns-name-label acr-tasks-$ACR_NAME \
+    --query "{FQDN:ipAddress.fqdn}" \
+    --output table
+
+
+# verify deployment
+az container attach --resource-group $RES_GROUP --name acr-tasks
+```

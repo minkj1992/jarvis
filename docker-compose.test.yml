@@ -17,23 +17,18 @@ services:
       - "--save 30 10"
       - "--save 6 10000"
       - "--requirepass ${REDIS_PASSWORD}"
-  app:
-    image: jarvisgptacr.azurecr.io/jarvis_app:v1
+    networks:
+      - my-network
+  test:
+    image: alpine
     container_name: jarvis-api
-    build: .
-    restart: always
-    # TODO: --proxy-headers, nginx, domain attatch
-    command: uvicorn main:app --workers 3 --host=0.0.0.0 --port 80
-    expose:
-      - "80"
-      - "443"
-    ports:
-      - "80:80"
-      - "443:443"
-    env_file:
-      - .env
+    command: ping redis
+    networks:
+      - my-network
     depends_on:
       - redis
+networks:
+  my-network:
 volumes:
   redis-data:
     # https://learn.microsoft.com/ko-kr/azure/storage/files/storage-files-introduction
@@ -41,3 +36,11 @@ volumes:
     driver_opts:
       share_name: jarvis0redis
       storage_account_name: jarvis0storage0account
+# > docker logs -f jarvis_jarvis-api
+# PING redis (127.0.0.1): 56 data bytes
+# 64 bytes from 127.0.0.1: seq=0 ttl=64 time=0.047 ms
+# 64 bytes from 127.0.0.1: seq=1 ttl=64 time=0.049 ms
+# 64 bytes from 127.0.0.1: seq=2 ttl=64 time=0.044 ms
+# 64 bytes from 127.0.0.1: seq=3 ttl=64 time=0.065 ms
+# 64 bytes from 127.0.0.1: seq=4 ttl=64 time=0.082 ms
+# 64 bytes from 127.0.0.1: seq=5 ttl=64 time=0.049 ms
