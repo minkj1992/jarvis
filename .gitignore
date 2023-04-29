@@ -133,3 +133,5 @@ dmypy.json
 # docker compose volume for dev phase
 src/poetry.lock
 src/pyproject.toml
+
+jarvisVM_key.pem

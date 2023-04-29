@@ -36,8 +36,4 @@ services:
       - redis
 volumes:
   redis-data:
-    # https://learn.microsoft.com/ko-kr/azure/storage/files/storage-files-introduction
-    driver: azure_file
-    driver_opts:
-      share_name: jarvis0redis
-      storage_account_name: jarvis0storage0account
+    driver: local

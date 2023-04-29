@@ -39,3 +39,7 @@ redis-shell:
 	docker exec -it \
 		jarvis_jarvis-redis \
 		/bin/bash -ci 'redis-cli'
+
+
+ssh:
+	ssh -i jarvisVM_key.pem azureuser@20.39.184.5

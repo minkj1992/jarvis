@@ -17,3 +17,6 @@ docs/_build
 
 **/.env
 **/.env.dev
+
+
+jarvisVM_key.pem
