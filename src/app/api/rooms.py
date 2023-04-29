@@ -34,7 +34,7 @@ class CreateRoomResponse(BaseModel):
         response_model=CreateRoomResponse,
         )
 async def create(room_in: CreateRoomRequest,):
-    docs, metadatas = ai.get_docs_and_metadatas(room_in.urls)
+    docs, metadatas = await ai.get_docs_and_metadatas(room_in.urls)
     room_uuid = await room_service.create_a_room(
         room_in.title,
         room_in.prompt,

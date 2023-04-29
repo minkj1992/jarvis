@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
@@ -24,13 +26,15 @@ Question: {question}
 
 
 
-def get_docs_and_metadatas(urls):
+async def get_docs_and_metadatas(urls):
     docs = []
     metadatas = []
     
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, separators=["\n\n", "\n", " ", ""])
-    for url in urls:
-        doc, metadata = extract_doc_metadata_from_url(url)
+    result = await asyncio.gather(
+        *[extract_doc_metadata_from_url(url) for url in urls]
+    )
+    for (doc, metadata) in result:
         for chunk in text_splitter.split_text(doc):
             docs.append(chunk)
             metadatas.append(metadata)
