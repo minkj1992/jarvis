@@ -65,9 +65,8 @@
   </style>
   <script>
     const room_uuid = {{ room_uuid | safe }};
-    // TODO: chat domain
-    // var ws = new WebSocket(`ws://localhost:8080/chat/${room_uuid}`);
-    const ws = new WebSocket(`ws://20.39.184.5:8080/chat/${room_uuid}`)
+    const base_url = {{ base_url | safe }};
+    const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`)
     // Receive message from server word by word. Display the words as they are received.
     ws.onmessage = function (event) {
       var messages = document.getElementById('messages');

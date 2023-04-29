@@ -6,6 +6,7 @@ from pydantic import BaseSettings
 # BaseSettings automatically bind os.environ with lowercase()
 class Cfg(BaseSettings):
     phase: str
+    base_url: str
     redis_uri: str
     openai_api_key: str
     openai_model: str

@@ -12,7 +12,9 @@ from app.services import room_service
 from app.wss.callback import (QuestionGenCallbackHandler,
                               StreamingLLMCallbackHandler)
 from app.wss.schemas import ChatResponse
+from infra.config import get_config
 
+cfg = get_config()
 chat_server = FastAPI()
 chat_server.add_middleware(
     CORSMiddleware,
@@ -31,7 +33,7 @@ async def get(request: Request, room_uuid:str):
     room = await room_service.get_a_room(room_uuid)
     if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
-    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title, "room_uuid": json.dumps(room_uuid)})
+    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"room_title": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
 
 
 # REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
