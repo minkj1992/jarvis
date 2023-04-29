@@ -21,16 +21,10 @@ push:
 	docker compose -f docker-compose.prod.yml push
 
 deploy:
-	az login
-	docker login jarvisgptacr.azurecr.io
-	docker context use jarvis0context
-	docker compose --file docker-compose.prod.yml up --build
-	docker logs --file jarvis_jarvis0api
+	docker compose --file docker-compose.prod.yml up --build -d
 
 prod-down:
-	docker context use jarvis0context
 	docker compose --file docker-compose.prod.yml down
-	docker context use default
 
 app-shell:
 	docker exec -it jarvis-app-1 sh
@@ -39,7 +33,6 @@ redis-shell:
 	docker exec -it \
 		jarvis_jarvis-redis \
 		/bin/bash -ci 'redis-cli'
-
-
 ssh:
 	ssh -i jarvisVM_key.pem azureuser@20.39.184.5
+
