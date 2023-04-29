@@ -33,7 +33,7 @@ async def get(request: Request, room_uuid:str):
     room = await room_service.get_a_room(room_uuid)
     if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
-    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"room_title": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
+    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
 
 
 # REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients

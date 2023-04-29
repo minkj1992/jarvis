@@ -9,7 +9,6 @@
     .chat-body {
       width: 450px;
       margin: 50px auto;
-
     }
 
     body {
@@ -66,7 +65,7 @@
   <script>
     const room_uuid = {{ room_uuid | safe }};
     const base_url = {{ base_url | safe }};
-    const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`)
+    const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`);
     // Receive message from server word by word. Display the words as they are received.
     ws.onmessage = function (event) {
       var messages = document.getElementById('messages');
