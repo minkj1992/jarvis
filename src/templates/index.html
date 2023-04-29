@@ -7,8 +7,13 @@
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
   <style>
     .chat-body {
-      width: 550px;
+      width: 450px;
       margin: 50px auto;
+
+    }
+
+    body {
+      width: 450px;
     }
 
     .card-body {
@@ -62,7 +67,7 @@
     const room_uuid = {{ room_uuid | safe }};
     // TODO: chat domain
     // var ws = new WebSocket(`ws://localhost:8080/chat/${room_uuid}`);
-    const ws = new WebSocket(`ws://20.39.184.5:8080/chat/${room_uuid}`)    
+    const ws = new WebSocket(`ws://20.39.184.5:8080/chat/${room_uuid}`)
     // Receive message from server word by word. Display the words as they are received.
     ws.onmessage = function (event) {
       var messages = document.getElementById('messages');
