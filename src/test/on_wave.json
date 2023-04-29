@@ -1,0 +1,19 @@
+{
+  "title": "온웨이브",
+  "urls": [
+    "https://www.spacecloud.kr/space/47889?type=search",
+    "http://onwavedance.quv.kr/",
+    "http://onwavedance.quv.kr/about",
+    "http://onwavedance.quv.kr/9",
+    "http://onwavedance.quv.kr/kids",
+    "http://onwavedance.quv.kr/8",
+    "http://onwavedance.quv.kr/courses",
+    "https://blog.naver.com/onwavedancestudio/223015412416",
+    "https://blog.naver.com/onwavedancestudio/223003395214",
+    "https://blog.naver.com/onwavedancestudio/222962617197",
+    "https://blog.naver.com/onwavedancestudio/223072504695",
+    "https://blog.naver.com/onwavedancestudio/223055265909",
+    "https://blog.naver.com/onwavedancestudio/223049232558"
+  ],
+  "prompt": "Use the following pieces of context to answer the question at the end in korean. If you don't know the answer, just say that you don't know, don't try to make up an answer.\n\n{context}\n\nQuestion: {question}\n!IMPORTANT Answer in korean:"
+}

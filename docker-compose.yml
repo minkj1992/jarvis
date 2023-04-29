@@ -23,9 +23,9 @@ services:
       - ./src:/src/
       - ./poetry.lock:/src/poetry.lock
       - ./pyproject.toml:/src/pyproject.toml
-    command: uvicorn main:app --workers 2 --host=0.0.0.0 --port 80 --reload
+    command: uvicorn main:app --workers 2 --host=0.0.0.0 --port 8080 --reload
     ports:
-      - "80:80"
+      - "8080:8080"
     env_file:
       - .env.dev
     depends_on:
