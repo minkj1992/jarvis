@@ -185,3 +185,13 @@ az container create \
 # verify deployment
 az container attach --resource-group $RES_GROUP --name acr-tasks
 ```
+
+## 
+
+```
+curl -L <https://raw.githubusercontent.com/wmnnd/nginx-certbot/master/init-letsencrypt.sh> > init-letsencrypt.sh
+chmod +x init-letsencrypt.sh
+vi init-letsencrypt.sh // 도메인, 이메일, 디렉토리 수정
+sudo ./init-letsencrypt.sh // 인증서 발급  
+
+```
