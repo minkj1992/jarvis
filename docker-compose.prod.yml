@@ -22,8 +22,7 @@ services:
     container_name: jarvis-api
     build: .
     restart: always
-    # TODO: --proxy-headers, nginx, domain attatch
-    command: uvicorn main:app --workers 3 --host=0.0.0.0 --port 8080
+    command: uvicorn main:app --proxy-headers --workers 3 --host=0.0.0.0 --port 8080
     expose:
       - "8080"
     ports:
@@ -36,7 +35,7 @@ services:
   nginx:
     container_name: jarvis-nginx
     image: nginx:1.15-alpine
-    restart: unless_stopped
+    restart: always
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
     ports:
       - 80:80
