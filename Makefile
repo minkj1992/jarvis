@@ -21,6 +21,7 @@ push:
 	docker compose -f docker-compose.prod.yml push
 
 deploy:
+	git pull
 	docker compose --file docker-compose.prod.yml up --build -d
 
 prod-down:
