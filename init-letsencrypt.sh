@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if ! [ -x "$(command -v docker compose)" ]; then
-  echo 'Error: docker compose is not installed.' >&2
+if ! [ -x "$(command -v docker-compose)" ]; then
+  echo 'Error: docker-compose is not installed.' >&2
   exit 1
 fi
 
-domains=gptalk.store www.gptalk.store
+domains=( "gptalk.store" "www.gptalk.store" )
 rsa_key_size=4096
 data_path="./data/certbot"
 email="minkj1992@gmail.com" # Adding a valid address is strongly recommended
