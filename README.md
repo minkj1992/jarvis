@@ -25,6 +25,8 @@
 4. Etc
     - [x] dotenv python
     - [x] manage chatGPT credit issue (429)
+    - [x] nginx ssl with let's encrypt (auto renewal by 3month)
+    - [x] deploy on azure
 
 
 ## init
