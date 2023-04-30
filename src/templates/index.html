@@ -43,7 +43,6 @@
     .form-control {
       width: 80%;
       background-color: #FFFFFF;
-      color: #fff;
       border: none;
       border-radius: 5px;
       padding: 10px;
@@ -65,6 +64,7 @@
   <script>
     const room_uuid = {{ room_uuid | safe }};
     const base_url = "{{ base_url | safe }}";
+    // local: const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`);
     const ws = new WebSocket(`wss://${base_url}/chat/${room_uuid}`);
     // Receive message from server word by word. Display the words as they are received.
     ws.onmessage = function (event) {
@@ -137,7 +137,7 @@
   </script>
 </head>
 
-<body class="bg-black">
+<body class="bg-white">
   <div class="chat-body card">
     <div class="card-body p-5">
       <h4 class="card-title text-center text-xl font-medium">{{ room_title | safe }} chat</h4>
