@@ -15,11 +15,7 @@ from pydantic import UUID4
 from infra import config
 
 cfg = config.get_config()
-embedding = OpenAIEmbeddings(
-            model=cfg.openai_model,
-            openai_api_key=cfg.openai_api_key, 
-            max_retries=3
-            )
+
 
 class RedisVectorStoreForAsync(RedisVectorStore):
     def as_retriever(self, **kwargs: Any) -> BaseRetriever:
@@ -38,11 +34,16 @@ def _get_redis_url() -> str:
 
 
 async def from_texts(docs, metadatas, index_name:UUID4):
+    
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_texts, 
         texts=docs,
         metadatas=metadatas,
-        embedding=embedding,
+        embedding=OpenAIEmbeddings(
+            model=cfg.openai_model,
+            openai_api_key=cfg.openai_api_key, 
+            max_retries=3
+        ),
         index_name=str(index_name),
         redis_url=_get_redis_url())
 
@@ -50,7 +51,11 @@ async def from_texts(docs, metadatas, index_name:UUID4):
 async def get_vectorstore(index_name:UUID4):
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_existing_index,
-        embedding=embedding,
+        embedding=OpenAIEmbeddings(
+            model=cfg.openai_model,
+            openai_api_key=cfg.openai_api_key, 
+            max_retries=3
+        ),
         index_name=str(index_name),
         redis_url=_get_redis_url()
     )
