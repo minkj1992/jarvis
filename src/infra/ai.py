@@ -55,9 +55,15 @@ class MyChain(ConversationalRetrievalChain):
 
         return docs[:num_docs]
 
+async def get_docs_from_texts(texts:str):
+    docs = []
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, separators=["\n\n", "\n", " ", ""])
+    for chunk in text_splitter.split_text(texts):
+        docs.append(chunk)
+    return docs
 
 
-async def get_docs_and_metadatas(urls):
+async def get_docs_and_metadatas_from_urls(urls):
     docs = []
     metadatas = []
     

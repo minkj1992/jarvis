@@ -1,7 +1,7 @@
 # https://python-dependency-injector.ets-labs.org/examples/fastapi-redis.html
 
 from functools import lru_cache
-from typing import Any, List
+from typing import Any, Iterable, List, Optional
 
 from aredis_om.connections import get_redis_connection
 from aredis_om.model import Field, HashModel
@@ -60,6 +60,13 @@ async def get_vectorstore(index_name:UUID4):
         redis_url=_get_redis_url()
     )
 
+
+async def update_vectorstore(index_name:UUID4, texts: Iterable[str]):
+    vs = await get_vectorstore(index_name)
+    await run_in_threadpool(
+        func=vs.add_texts,
+        texts=texts,
+    )
 
 
 class Room(HashModel):

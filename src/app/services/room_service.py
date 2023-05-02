@@ -8,7 +8,7 @@ from infra import ai, redis
 
 logger = logging.getLogger(__name__)
 
-async def create_a_room(title, prompt, docs, metadatas):
+async def create_a_room(title, prompt, docs, metadatas=None):
     room_uuid = uuid.uuid4()
     room = redis.Room(uuid=room_uuid, title=title, prompt=prompt)
     
