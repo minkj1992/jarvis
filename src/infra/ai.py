@@ -1,8 +1,11 @@
 import asyncio
+import logging
+from typing import Any, List
 
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
+from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
+                                                     QA_PROMPT)
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
@@ -25,6 +28,34 @@ Question: {question}
 !IMPORTANT Answer in korean:"""
 
 
+class MyChain(ConversationalRetrievalChain):
+    async def _aget_docs(self, question: str, inputs: Any):
+        try:
+            docs = await self.retriever.aget_relevant_documents(question)
+        except Exception as err:
+            logging.error(f'Question: {question}, Inputs: {inputs}')
+            logging.error(err)
+            raise err
+        result = await self._reduce_tokens_below_limit(docs)
+        return result
+    
+    async def _reduce_tokens_below_limit(self, docs: List[Any]) -> List[Any]:
+        num_docs = len(docs)
+
+        if self.max_tokens_limit:
+            tokens = [
+                self.combine_docs_chain.llm_chain.llm.get_num_tokens(doc.page_content)
+                for doc in docs
+            ]
+
+            token_count = sum(tokens[:num_docs])
+            while token_count > self.max_tokens_limit:
+                num_docs -= 1
+                token_count -= tokens[num_docs]
+
+        return docs[:num_docs]
+
+
 
 async def get_docs_and_metadatas(urls):
     docs = []
@@ -41,9 +72,10 @@ async def get_docs_and_metadatas(urls):
     return docs, metadatas
 
 
+
 async def get_chain(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler , stream_handler: AsyncCallbackHandler):
     manager = AsyncCallbackManager([])
-    qa_prompt = PromptTemplate(template=DEFAULT_PROMPT_TEMPLATE, input_variables=["context", "question"])
+    qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
 
     question_generator = LLMChain(
         llm=ChatOpenAI(
@@ -66,11 +98,11 @@ async def get_chain(vs: VectorStore, prompt:str, question_handler:AsyncCallbackH
     doc_chain = load_qa_chain(
         streaming_llm,
         chain_type="stuff",
-        prompt=qa_prompt, 
+        prompt=qa_prompt,
         callback_manager=manager,
     )
 
-    return ConversationalRetrievalChain(
+    return MyChain(
         retriever=vs.as_retriever(search_kwargs={'k':4}),
         combine_docs_chain=doc_chain,
         question_generator=question_generator,

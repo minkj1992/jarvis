@@ -65,8 +65,8 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
                     {"question": question, "chat_history": chat_history}
                 )
             except openai.error.InvalidRequestError as err:
-                logging.error(err)
                 # handle 4097 error clear chat_history and retry once again
+                logging.error(err)
                 chat_history = []
                 result = await qa_chain.acall(
                     {"question": question, "chat_history": chat_history}
