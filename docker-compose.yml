@@ -16,6 +16,8 @@ services:
       - "--save 30 10"
       - "--save 6 10000"
       - "--requirepass ${REDIS_PASSWORD}"
+    links:
+      - redis-commander
   app:
     restart: always
     container_name: jarvis-api
@@ -31,6 +33,19 @@ services:
       - .env.dev
     depends_on:
       - redis
+  redis-commander:
+    container_name: redis-commander
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      REDIS_HOSTS: redis
+      REDIS_HOST: redis
+      REDIS_PORT: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HTTP_USER: root
+      HTTP_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "8081:8081"
 volumes:
   redis-data:
     driver: local
