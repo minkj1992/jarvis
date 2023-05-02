@@ -56,7 +56,6 @@ def _get_content(raw_content):
 
 
 async def extract_doc_metadata_from_url(url):
-    print(url)
     # URL에서 HTML 문서를 가져옵니다.
     response = requests.get(url, headers=headers)
     html = response.content

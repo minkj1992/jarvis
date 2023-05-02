@@ -32,8 +32,8 @@ app-shell:
 
 redis-shell:
 	docker exec -it \
-		jarvis_jarvis-redis \
-		/bin/bash -ci 'redis-cli'
+		jarvis-redis \
+		/bin/bash -ci 'redis-cli --raw'
 ssh:
 	ssh -i jarvisVM_key.pem azureuser@20.39.184.5
 
