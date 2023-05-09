@@ -1,0 +1,39 @@
+{
+  "intent": {
+    "id": "5a56ec0008cc1461d75291f6",
+    "name": "스킬테스트"
+  },
+  "userRequest": {
+    "timezone": "Asia/Seoul",
+    "params": {
+      "exampleParam": "example"
+    },
+    "block": {
+      "id": "5a56ec0008cc1461d75291f6",
+      "name": "스킬테스트"
+    },
+    "utterance": "안녕, 오늘 서울 날씨좀 알려줘",
+    "lang": "kr",
+    "user": {
+      "id": "620678",
+      "type": "talk_user_id",
+      "properties": {
+        "appUserId": "708203191",
+        "appUserStatus": "REGISTERED",
+        "plusfriend_user_key": "BlGTEYoiNoSh"
+      }
+    }
+  },
+  "contexts": [],
+  "bot": {
+    "id": "5a548e36aea1a43fa851ecd9",
+    "name": "또봇"
+  },
+  "action": {
+    "name": "스킬원",
+    "clientExtra": "null",
+    "params": {},
+    "id": "5a56ebaa211ee046633e958d",
+    "detailParams": {}
+  }
+}
