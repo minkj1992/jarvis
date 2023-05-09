@@ -2,13 +2,14 @@ import asyncio
 import json
 import logging
 import time
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 import aioredis
 import openai
 from fastapi import (BackgroundTasks, FastAPI, HTTPException, Request,
                      WebSocket, WebSocketDisconnect, status)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -57,9 +58,9 @@ class UserRequest(BaseModel):
 class KakaoMessageRequest(BaseModel):
     userRequest: UserRequest
 
-class KakaoMessageResponse(BaseModel):
-    msg: str
-    chat_id: str
+
+
+
 
 
 
@@ -146,7 +147,6 @@ redis = aioredis.from_url(
 )
 
 
-from pprint import pprint
 
 
 # OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
@@ -188,6 +188,15 @@ async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str)
         await pipe.execute()
 
 
+
+
+class KakaoMessageResponse(BaseModel):
+    version: str
+    template: Any
+
+
+
+
 # API endpoint를 정의합니다.
 @chat_server.post(
         "/kakao/{room_uuid}", 
@@ -203,8 +212,19 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     await save_question(redis, chat_id, user_message)
     response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
     print(response, time.time() - start_time)
-    return KakaoMessageResponse(**response)
-
+    return KakaoMessageResponse(
+        version="2.0",
+        template= {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": f"[{response['chat_id']}: {response['msg']}]",
+                        
+                    }
+                }
+            ]
+        }
+    )
 
 
 
