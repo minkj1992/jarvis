@@ -14,6 +14,7 @@ class Cfg(BaseSettings):
     max_token_limit: int
     redis_host: str
     redis_password: str
+    kakao_time_out: float
     
 
 @lru_cache()

@@ -79,7 +79,16 @@ async def get_docs_and_metadatas_from_urls(urls):
 
 
 
-async def get_chain(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler , stream_handler: AsyncCallbackHandler):
+async def get_chain(vs: VectorStore, prompt:str)-> ConversationalRetrievalChain:
+    qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
+    return ConversationalRetrievalChain.from_llm(
+        ChatOpenAI(openai_api_key=_cfg.openai_api_key, temperature=0.7, model_name="gpt-3.5-turbo"),
+        retriever=vs.as_retriever(search_kwargs={'k':4}),
+        qa_prompt=qa_prompt,
+    )
+
+
+async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler , stream_handler: AsyncCallbackHandler):
     manager = AsyncCallbackManager([])
     qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
 

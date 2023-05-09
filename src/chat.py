@@ -3,7 +3,6 @@ import json
 import logging
 import time
 from typing import Dict, List, Union
-from uuid import UUID
 
 import aioredis
 import openai
@@ -91,7 +90,7 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
     stream_handler = StreamingLLMCallbackHandler(websocket)
     chat_history = []
 
-    qa_chain = await room_service.get_a_chat_room_chain(room, question_handler, stream_handler)
+    qa_chain = await room_service.get_a_chat_room_stream_chain(room, question_handler, stream_handler)
     while True:
         try:
             # Receive and send back the client message
@@ -147,28 +146,29 @@ redis = aioredis.from_url(
 )
 
 
+from pprint import pprint
 
-# OpenAI API 키를 설정합니다.
-openai.api_key = cfg.openai_api_key
-TIME_OUT = 3.5
 
 # OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
-async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str,t ) -> str:
-    await asyncio.sleep(10)
-    response = "10초 뒤의 gpt 응답 테스트"
-    await save_chat_response(redis, chat_id, response,t)
-    return response
+async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str) -> str:
+    chain = await room_service.get_a_chat_room_chain(room_uuid)
+    # TODO: chat_history is empty, we need memory chat
+    result = await chain.acall({"question": user_message, "chat_history": []})
+    answer = result.get('answer')
+    await save_chat_response(redis, chat_id, answer)
+    return answer
 
-async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, t, background_tasks:BackgroundTasks) -> str:
-    task = asyncio.ensure_future(get_response(redis, chat_id, user_message,t))
+async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid) -> str:
+    task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
     # 5초 이내에 task가 완료되면 결과를 반환하고,
     # 그렇지 않으면 timeout 예외를 발생시킴
     try:
-        chat_response = await asyncio.wait_for(task, timeout=TIME_OUT)
+        chat_response = await asyncio.wait_for(task, timeout=cfg.kakao_time_out)
     except asyncio.TimeoutError:
         # timeout이 발생한 경우에 대한 처리
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
-        background_tasks.add_task(get_response, redis, chat_id, user_message,t)
+        # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
+        background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid)
         return {'msg': "다시 시도해주세요", 'chat_id': chat_id}
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
@@ -180,9 +180,7 @@ async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> N
     await redis.lpush(redis_chat_id, question)
     await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
 
-async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str, t=None) -> None:
-    if t:
-        print(response, time.time() - t)
+async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
     # for background task
     redis_chat_id = f"chat:{chat_id}"
     async with redis.pipeline() as pipe:
@@ -203,17 +201,9 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     chat_id = f"{room_uuid}:{user_id}"
     
     await save_question(redis, chat_id, user_message)
-    response = await get_response_and_store(redis, chat_id, user_message, start_time, background_tasks)
+    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
     print(response, time.time() - start_time)
     return KakaoMessageResponse(**response)
-
-
-
-
-
-
-
-
 
 
 
