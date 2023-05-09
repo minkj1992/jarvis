@@ -56,12 +56,14 @@ class UserRequest(BaseModel):
     utterance: str = Field(title="봇 시스템에 전달된 사용자의 발화입니다.")
 
 class KakaoMessageRequest(BaseModel):
+    class KakaoAction(BaseModel):
+        class UserParam(BaseModel):
+            prompt: str
+        
+        params: UserParam
+
     userRequest: UserRequest
-
-
-
-
-
+    action: KakaoAction
 
 
 # 채팅 uuid = userUUID + room_uuid
@@ -132,10 +134,7 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             await websocket.send_json(resp.dict())
 
 
-# 418f786c-5981-481f-bddf-8d0e6f1f07bb
-tmp = """
 
-"""
 
 
 # Redis 클라이언트를 생성합니다.
@@ -145,7 +144,6 @@ redis = aioredis.from_url(
     encoding="utf-8", 
     decode_responses=True
 )
-
 
 
 
@@ -196,7 +194,7 @@ class KakaoMessageResponse(BaseModel):
 
 
 
-
+# 418f786c-5981-481f-bddf-8d0e6f1f07bb
 # API endpoint를 정의합니다.
 @chat_server.post(
         "/kakao/{room_uuid}", 
@@ -205,10 +203,10 @@ class KakaoMessageResponse(BaseModel):
         )
 async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:
     start_time = time.time()
-    user_id = chat_in.userRequest.user.properties['appUserId']
-    user_message = chat_in.userRequest.utterance
+    # TODO: default value fix
+    user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
+    user_message = chat_in.action.params.prompt
     chat_id = f"{room_uuid}:{user_id}"
-    
     await save_question(redis, chat_id, user_message)
     response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
     print(response, time.time() - start_time)
