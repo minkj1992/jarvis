@@ -2,9 +2,8 @@ import asyncio
 import logging
 import uuid
 
-from pydantic import UUID4
-
 from infra import ai, redis
+from pydantic import UUID4
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,13 @@ async def get_a_room(room_uuid):
 
 
 
-async def get_a_chat_room_chain(room: redis.Room, question_handler, stream_handler):
+async def get_a_chat_room_stream_chain(room: redis.Room, question_handler, stream_handler):
     vectorstore = await redis.get_vectorstore(room.uuid)
-    qa_cahin = await ai.get_chain(vectorstore, room.prompt, question_handler, stream_handler)
+    qa_cahin = await ai.get_chain_stream(vectorstore, room.prompt, question_handler, stream_handler)
     return qa_cahin
+
+
+async def get_a_chat_room_chain(room_uuid):
+    room = await get_a_room(room_uuid)
+    vectorstore = await redis.get_vectorstore(room.uuid)
+    return await ai.get_chain(vectorstore, room.prompt)
