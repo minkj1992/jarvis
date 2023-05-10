@@ -76,10 +76,6 @@ class UserRequest(BaseModel):
 class KakaoMessageRequest(BaseModel):
     userRequest: UserRequest
 
-    def __init__(**data: Any) -> None:
-        logging.error("Kakao Post Request raw data: %s", data)
-        super().__init__(**data)
-
 
 # Redis 클라이언트를 생성합니다.
 redis = aioredis.from_url(
@@ -101,7 +97,7 @@ async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, r
     return answer
 
 async def get_response_and_store_callback(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
-    redis_response = get_chat_response(redis, chat_id)
+    redis_response = await get_chat_response(redis, chat_id)
     if redis_response:
         return redis_response
     return await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time)
@@ -119,7 +115,7 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
         # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
         background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid, True)
-        return "죄송합니다 🤖 3초만 더 생각할 시간을 주세요."
+        return "죄송합니다 🤖 3초만 더 생각할 시간을 주세요.3초가 지났으면 저를 클릭해주시고,  아래버튼에서\n'생각이다 정리됐니 🤔?'를 눌러주세요"
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
         return chat_response
@@ -133,7 +129,7 @@ async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str)
         await pipe.expire(redis_chat_id, 600) # 10분
         await pipe.execute()
 
-async def get_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
+async def get_chat_response(redis: aioredis.Redis, chat_id: str) -> None:
     redis_chat_id = f"chat:{chat_id}"
     return await redis.lpop(redis_chat_id)
 
@@ -172,7 +168,7 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
             "outputs": [
                 {
                     "simpleText": {
-                        "text": f"{response['msg']}",
+                        "text": response,
                         
                     }
                 }
@@ -206,7 +202,7 @@ async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_t
             "outputs": [
                 {
                     "simpleText": {
-                        "text": f"{response['msg']}",
+                        "text": response,
                         
                     }
                 }
