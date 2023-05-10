@@ -62,7 +62,10 @@ async def extract_doc_metadata_from_url(url):
 
     # HTML 문서에서 metadata를 추출합니다.
     soup = BeautifulSoup(html, 'html.parser')
-    title = soup.find('title').get_text(),
+    try:
+        title = soup.find('title').get_text()
+    except AttributeError:
+        title = ''
 
     # HTML에서 javascript, css 태그 제거
     for script in soup(["script", "style"]):
