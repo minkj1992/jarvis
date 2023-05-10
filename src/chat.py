@@ -66,27 +66,109 @@ class UserRequest(BaseModel):
 
 
 class KakaoMessageRequest(BaseModel):
-    class KakaoAction(BaseModel):
-        class UserParam(BaseModel):
-            prompt: str
-        
-        params: UserParam
-
     userRequest: UserRequest
-    action: KakaoAction
 
 
-# 채팅 uuid = userUUID + room_uuid
-# @router.post(
-#         "/kakao/{room_uuid}", 
-#         status_code=status.HTTP_202_ACCEPTED,
-#         response_model=,
-#         )
-# async def add_(room_uuid:str, chat_in:KakaoMessageRequest):
-#     room = await room_service.get_a_room(room_uuid)
-#     if room is None:
-#         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
-#     return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
+# Redis 클라이언트를 생성합니다.
+redis = aioredis.from_url(
+    url=cfg.redis_uri, 
+    password=cfg.redis_password, 
+    encoding="utf-8", 
+    decode_responses=True
+)
+
+
+
+# OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
+async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str) -> str:
+    chain = await room_service.get_a_chat_room_chain(room_uuid)
+    # TODO: chat_history is empty, we need memory chat
+    result = await chain.acall({"question": user_message, "chat_history": []})
+    answer = result.get('answer')
+    await save_chat_response(redis, chat_id, answer)
+    return answer
+
+async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid) -> str:
+    task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
+    # 5초 이내에 task가 완료되면 결과를 반환하고,
+    # 그렇지 않으면 timeout 예외를 발생시킴
+    try:
+        chat_response = await asyncio.wait_for(task, timeout=cfg.kakao_time_out)
+    except asyncio.TimeoutError:
+        # timeout이 발생한 경우에 대한 처리
+        # 백그라운드로 openai에 다시 요청하고, redis에 저장
+        # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
+        background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid)
+        return {'msg': "다시 시도해주세요", 'chat_id': chat_id}
+    else:
+        # task가 timeout초 이내에 완료된 경우에 대한 처리
+        return {'msg': chat_response, 'chat_id': chat_id}
+
+
+async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> None:
+    redis_chat_id = f"chat:{chat_id}"
+    await redis.lpush(redis_chat_id, question)
+    await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
+
+async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
+    # for background task
+    redis_chat_id = f"chat:{chat_id}"
+    async with redis.pipeline() as pipe:
+        await pipe.lpush(redis_chat_id, response)
+        await pipe.execute()
+
+
+class KakaoMessageResponse(BaseModel):
+    version: str
+    template: Any
+
+
+# API endpoint를 정의합니다.
+@chat_server.post(
+        "/kakao/{room_uuid}", 
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=KakaoMessageResponse,
+        )
+async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:
+    #     room = await room_service.get_a_room(room_uuid)
+    #     if room is None:
+    #         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
+    #     return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
+
+
+    # TODO: default value fix
+    user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
+    chat_in.userRequest.utt
+    user_message = chat_in.userRequest.utterance
+    chat_id = f"{room_uuid}:{user_id}"
+    await save_question(redis, chat_id, user_message)
+    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
+    return KakaoMessageResponse(
+        version="2.0",
+        template= {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": f"[{response['chat_id']}: {response['msg']}]",
+                        
+                    }
+                }
+            ]
+        }
+    )
+
+
+async def get_chat_history(chat_id:str):
+    # 10 history
+    redis_chat_id = f"chat:{chat_id}"
+    return await redis.lrange(redis_chat_id, 0, 9)
+
+
+@chat_server.get("/kakao/{chat_id}/history")
+async def chat_history(chat_id: str) -> List[str]:
+    chat_history = await get_chat_history(chat_id)
+    return [msg for msg in chat_history]
+
 
 
 
@@ -143,110 +225,3 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             )
             await websocket.send_json(resp.dict())
 
-
-
-
-
-# Redis 클라이언트를 생성합니다.
-redis = aioredis.from_url(
-    url=cfg.redis_uri, 
-    password=cfg.redis_password, 
-    encoding="utf-8", 
-    decode_responses=True
-)
-
-
-
-# OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
-async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str) -> str:
-    chain = await room_service.get_a_chat_room_chain(room_uuid)
-    # TODO: chat_history is empty, we need memory chat
-    result = await chain.acall({"question": user_message, "chat_history": []})
-    answer = result.get('answer')
-    await save_chat_response(redis, chat_id, answer)
-    return answer
-
-async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid) -> str:
-    task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
-    # 5초 이내에 task가 완료되면 결과를 반환하고,
-    # 그렇지 않으면 timeout 예외를 발생시킴
-    try:
-        chat_response = await asyncio.wait_for(task, timeout=cfg.kakao_time_out)
-    except asyncio.TimeoutError:
-        # timeout이 발생한 경우에 대한 처리
-        # 백그라운드로 openai에 다시 요청하고, redis에 저장
-        # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
-        background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid)
-        return {'msg': "다시 시도해주세요", 'chat_id': chat_id}
-    else:
-        # task가 timeout초 이내에 완료된 경우에 대한 처리
-        return {'msg': chat_response, 'chat_id': chat_id}
-
-
-async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> None:
-    redis_chat_id = f"chat:{chat_id}"
-    await redis.lpush(redis_chat_id, question)
-    await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
-
-async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
-    # for background task
-    redis_chat_id = f"chat:{chat_id}"
-    async with redis.pipeline() as pipe:
-        await pipe.lpush(redis_chat_id, response)
-        await pipe.execute()
-
-
-
-
-class KakaoMessageResponse(BaseModel):
-    version: str
-    template: Any
-
-
-
-# 418f786c-5981-481f-bddf-8d0e6f1f07bb
-# API endpoint를 정의합니다.
-@chat_server.post(
-        "/kakao/{room_uuid}", 
-        status_code=status.HTTP_202_ACCEPTED,
-        response_model=KakaoMessageResponse,
-        )
-async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:
-    start_time = time.time()
-    # TODO: default value fix
-    user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
-    chat_in.userRequest.utt
-    user_message = chat_in.action.params.prompt
-    chat_id = f"{room_uuid}:{user_id}"
-    await save_question(redis, chat_id, user_message)
-    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
-    print(response, time.time() - start_time)
-    return KakaoMessageResponse(
-        version="2.0",
-        template= {
-            "outputs": [
-                {
-                    "simpleText": {
-                        "text": f"[{response['chat_id']}: {response['msg']}]",
-                        
-                    }
-                }
-            ]
-        }
-    )
-
-
-
-
-
-
-async def get_chat_history(chat_id:str):
-    # 10 history
-    redis_chat_id = f"chat:{chat_id}"
-    return await redis.lrange(redis_chat_id, 0, 9)
-
-
-@chat_server.get("/kakao/{chat_id}/history")
-async def chat_history(chat_id: str) -> List[str]:
-    chat_history = await get_chat_history(chat_id)
-    return [msg for msg in chat_history]
