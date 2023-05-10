@@ -60,8 +60,12 @@ class UserRequest(BaseModel):
             title="추가적으로 제공하는 사용자의 속성 정보입니다.",
             description="https://i.kakao.com/docs/skill-response-format#userproperties"
     )
+        
+    class Block(BaseModel):
+        id: str = Field(title="블록을 식별할 수 있는 id.")
 
     user: User
+    block: Block
     utterance: str = Field(title="봇 시스템에 전달된 사용자의 발화입니다.")
 
 
@@ -80,35 +84,36 @@ redis = aioredis.from_url(
 
 
 # OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
-async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str) -> str:
+async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str, retry=False) -> str:
     chain = await room_service.get_a_chat_room_chain(room_uuid)
     # TODO: chat_history is empty, we need memory chat
     result = await chain.acall({"question": user_message, "chat_history": []})
     answer = result.get('answer')
-    await save_chat_response(redis, chat_id, answer)
+    if retry:
+        await save_chat_response(redis, chat_id, answer)
     return answer
 
-async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid) -> str:
+async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid, start_time=None) -> str:
     task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
     # 5초 이내에 task가 완료되면 결과를 반환하고,
     # 그렇지 않으면 timeout 예외를 발생시킴
     try:
-        chat_response = await asyncio.wait_for(task, timeout=cfg.kakao_time_out)
+        chat_response = await asyncio.wait_for(task, timeout=(start_time+cfg.kakao_time_out)-time.time())
     except asyncio.TimeoutError:
         # timeout이 발생한 경우에 대한 처리
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
         # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
-        background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid)
-        return {'msg': "다시 시도해주세요", 'chat_id': chat_id}
+        background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid, True)
+        return {'msg': "죄송합니다 🤖 3초만 더 생각할 시간을 주세요.", 'chat_id': chat_id}
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
         return {'msg': chat_response, 'chat_id': chat_id}
 
 
-async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> None:
-    redis_chat_id = f"chat:{chat_id}"
-    await redis.lpush(redis_chat_id, question)
-    await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
+# async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> None:
+#     redis_chat_id = f"chat:{chat_id}"
+#     await redis.lpush(redis_chat_id, question)
+#     await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
 
 async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
     # for background task
@@ -135,14 +140,20 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     #         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     #     return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
 
-
-    # TODO: default value fix
-    logging.error("User properties: %s", chat_in.userRequest.user.properties)
-    user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
+    # TODO: 친구가 아닐 경우, 로직처리
+    start_time = time.time()
+    
+    is_friend = True if chat_in.userRequest.user.properties.get('isFriend') else False
+    user_id = chat_in.userRequest.user.properties.get('plusfriendUserKey', "UERkbohv5xgP")
     user_message = chat_in.userRequest.utterance
     chat_id = f"{room_uuid}:{user_id}"
-    await save_question(redis, chat_id, user_message)
-    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
+
+    logging.error("Kakao User properties: %s", chat_in.userRequest.user.properties)
+    logging.error(f"Kakao block id: {chat_in.userRequest.block.id}")
+    logging.error(f"Kakao Chat id: {chat_id}")
+
+    # await save_question(redis, chat_id, user_message)
+    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time)
     return KakaoMessageResponse(
         version="2.0",
         template= {
