@@ -8,8 +8,9 @@ import aioredis
 import openai
 from fastapi import (BackgroundTasks, FastAPI, HTTPException, Request,
                      WebSocket, WebSocketDisconnect, status)
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -40,6 +41,14 @@ async def get(request: Request, room_uuid:str):
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
 
+@chat_server.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+	exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+	logging.error(f"{request}: {exc_str}")
+	content = {'status_code': 10422, 'message': exc_str, 'data': None}
+	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+
 class UserRequest(BaseModel):
     class User(BaseModel):
         id: str = Field(
@@ -54,6 +63,7 @@ class UserRequest(BaseModel):
 
     user: User
     utterance: str = Field(title="봇 시스템에 전달된 사용자의 발화입니다.")
+
 
 class KakaoMessageRequest(BaseModel):
     class KakaoAction(BaseModel):
@@ -205,15 +215,12 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     start_time = time.time()
     # TODO: default value fix
     user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
-    logging.error(chat_in)
-    user_message = chat_in.userRequest.utterance
-    #user_message = chat_in.action.params.prompt
+    chat_in.userRequest.utt
+    user_message = chat_in.action.params.prompt
     chat_id = f"{room_uuid}:{user_id}"
     await save_question(redis, chat_id, user_message)
     response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
     print(response, time.time() - start_time)
-    logging.error(response['chat_id'])
-    logging.error(response['msg'])
     return KakaoMessageResponse(
         version="2.0",
         template= {

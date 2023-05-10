@@ -1,4 +1,4 @@
-.PHONY: dev build up down destroy app-shell redis-shell push deploy prod-down
+.PHONY: dev build up down destroy app-shell redis-shell push deploy prod-down ssh info
 
 dev:
 	poetry run uvicorn --host=127.0.0.1 main:app
@@ -34,6 +34,9 @@ redis-shell:
 	docker exec -it \
 		jarvis-redis \
 		/bin/bash -ci 'redis-cli --raw'
+
 ssh:
 	ssh -i jarvisVM_key.pem azureuser@20.39.184.5
 
+info:
+	docker logs -f jarvis-api
