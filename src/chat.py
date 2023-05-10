@@ -21,6 +21,8 @@ from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
 DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
+DEFAULT_KAKAO_TIMEOUT_MSG = f"죄송합니다 🤖 5초만 더 생각할 시간을 주세요. 5초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
+DEFAULT_CALLBACK_UNPREPARED_MSG = '아직 생각이 정리되지 않았습니다. 혹시 5초가 지났을까요🤔?'
 
 cfg = get_config()
 chat_server = FastAPI()
@@ -102,7 +104,7 @@ async def get_response_and_store_callback(redis: aioredis.Redis, chat_id: str, u
     redis_response = await get_chat_response(redis, chat_id)
     if redis_response:
         return redis_response
-    return await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time)
+    return DEFAULT_CALLBACK_UNPREPARED_MSG
 
 async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
     task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
@@ -117,7 +119,7 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
         # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
         background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid, True)
-        return f"죄송합니다 🤖 3초만 더 생각할 시간을 주세요.3초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
+        return DEFAULT_KAKAO_TIMEOUT_MSG
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
         return chat_response
@@ -185,9 +187,7 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
         status_code=status.HTTP_202_ACCEPTED,
         response_model=KakaoMessageResponse,
         )
-async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:
-    start_time = time.time()
-    
+async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:    
     user_id = chat_in.userRequest.user.properties.get('botUserKey', "UERkbohv5xgP")
     user_message = chat_in.userRequest.utterance
     is_callback = True if chat_in.userRequest.callback_url else False
@@ -197,7 +197,7 @@ async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_t
     logging.error(f"Kakao Chat id: {chat_id}")
     logging.error(f"Kakao is_callback: {is_callback}")
 
-    response = await get_response_and_store_callback(redis, chat_id, user_message, background_tasks, room_uuid, start_time=start_time)
+    response = await get_response_and_store_callback(redis, chat_id, user_message, background_tasks, room_uuid)
     return KakaoMessageResponse(
         version="2.0",
         template= {
