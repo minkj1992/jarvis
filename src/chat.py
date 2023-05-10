@@ -21,8 +21,8 @@ from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
 DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
-DEFAULT_KAKAO_TIMEOUT_MSG = f"죄송합니다 🤖 5초만 더 생각할 시간을 주세요. 5초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
-DEFAULT_CALLBACK_UNPREPARED_MSG = '아직 생각이 정리되지 않았습니다. 혹시 5초가 지났을까요🤔?'
+DEFAULT_KAKAO_TIMEOUT_MSG = f"⚠️ 죄송합니다 5초만 더 생각할 시간을 주세요. 5초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
+DEFAULT_CALLBACK_UNPREPARED_MSG = '⚠️ 아직 생각이 정리되지 않았습니다. 혹시 5초가 지났을까요?'
 
 cfg = get_config()
 chat_server = FastAPI()
@@ -100,10 +100,10 @@ async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, r
         await save_chat_response(redis, chat_id, answer)
     return answer
 
-async def get_response_and_store_callback(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
+async def get_response_callback(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
     redis_response = await get_chat_response(redis, chat_id)
     if redis_response:
-        return redis_response
+        return f'✅ {redis_response}'
     return DEFAULT_CALLBACK_UNPREPARED_MSG
 
 async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
@@ -122,7 +122,7 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
         return DEFAULT_KAKAO_TIMEOUT_MSG
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
-        return chat_response
+        return f'✅ {chat_response}'
 
 
 async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
@@ -180,7 +180,6 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
         }
     )
 
-
 # API endpoint를 정의합니다.
 @chat_server.post(
         "/kakao/{room_uuid}/callback", 
@@ -197,7 +196,7 @@ async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_t
     logging.error(f"Kakao Chat id: {chat_id}")
     logging.error(f"Kakao is_callback: {is_callback}")
 
-    response = await get_response_and_store_callback(redis, chat_id, user_message, background_tasks, room_uuid)
+    response = await get_response_callback(redis, chat_id, user_message, background_tasks, room_uuid)
     return KakaoMessageResponse(
         version="2.0",
         template= {
