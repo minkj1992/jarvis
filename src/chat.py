@@ -21,7 +21,7 @@ from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
 DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
-DEFAULT_KAKAO_TIMEOUT_MSG = f"⚠️ 죄송합니다 5초만 더 생각할 시간을 주세요. 5초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
+DEFAULT_KAKAO_TIMEOUT_MSG = f"⚠️ 죄송합니다 5초만 더 생각할 시간을 주세요.\n5초가 지났으면 저를 클릭해주시고, 아래버튼에서 아래 문구를 눌러주세요.\n\n'{DEFAULT_CALLBACK_MSG}'"
 DEFAULT_CALLBACK_UNPREPARED_MSG = '⚠️ 아직 생각이 정리되지 않았습니다. 혹시 5초가 지났을까요?'
 
 cfg = get_config()
