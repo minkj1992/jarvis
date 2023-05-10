@@ -80,6 +80,11 @@
       background-color: #3F3FFF;
       cursor: pointer;
     }
+
+    #send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 
@@ -94,7 +99,7 @@
       <div id="messages" class="overflow-auto h-64 mb-4"></div>
       <form action="" class="form-inline" id="chat-form" onsubmit="sendMessage(event)">
         <input type="text" class="form-control" placeholder="Write your question" id="messageText">
-        <button id="send" type="submit" class="btn btn-primary">Send</button>
+        <button id="send" type="submit" class="btn btn-primary disabled">Send</button>
       </form>
     </div>
   </div>
@@ -102,55 +107,55 @@
 
 
 <script>
+  const CHAT_TIMEOUT = 10000; // 1분
+
   const room_uuid = {{ room_uuid | safe }};
   const base_url = "{{ base_url | safe }}";
+  let activityTimeout;
+
   // const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`);
   const ws = new WebSocket(`wss://${base_url}/chat/${room_uuid}`);
+
   // Receive message from server word by word. Display the words as they are received.
   ws.onmessage = function (event) {
-    var messages = document.getElementById('messages');
-    var data = JSON.parse(event.data);
+    // 활동 상태 업데이트
+    clearTimeout(activityTimeout);
+
+    let messages = document.getElementById('messages');
+    let data = JSON.parse(event.data);
     if (data.sender === "Assistant") {
       if (data.type === "start") {
-        var header = document.getElementById('header');
+        let header = document.getElementById('header');
         header.innerHTML = "Computing answer..."; // 채팅 시작 시 헤더를 "Computing answer..."로 변경
-        var div = document.createElement('div');
+        let div = document.createElement('div');
         div.className = 'server-message';
-        var p = document.createElement('p');
+        let p = document.createElement('p');
         p.innerHTML = "<strong>" + "Chatbot: " + "</strong>"; // "Chatbot: " 문구 추가
         div.appendChild(p);
         messages.appendChild(div);
       } else if (data.type === "stream") {
-        var header = document.getElementById('header');
-        header.innerHTML = "Chatbot is typing..."; // 채팅 중에 헤더를 "Chatbot is typing..."로 변경
-        var p = messages.lastChild.lastChild;
+        changeChatHeader("Chatbot is typing...");
+        let p = messages.lastChild.lastChild;
         if (data.message === "\n") {
           p.innerHTML += "<br>";
         } else {
           p.innerHTML += data.message; // 새로운 단어를 기존 메시지에 추가
         }
       } else if (data.type === "info") {
-        var header = document.getElementById('header');
-        header.innerHTML = data.message;
+        changeChatHeader(data.message);
       } else if (data.type === "end") {
-        var header = document.getElementById('header');
-        header.innerHTML = "Ask a question"; // 채팅 종료 시 헤더를 "Ask a question"으로 변경
-        var button = document.getElementById('send');
-        button.innerHTML = "Send";
-        button.disabled = false;
+        changeChatHeader("Ask a question");
+        enableSendBtn();
       } else if (data.type === "error") {
-        var header = document.getElementById('header');
-        header.innerHTML = "Ask a question"; // 에러 발생 시 헤더를 "Ask a question"으로 변경
-        var button = document.getElementById('send');
-        button.innerHTML = "Send";
-        button.disabled = false;
-        var p = messages.lastChild.lastChild;
+        changeChatHeader("Ask a question");
+        enableSendBtn();
+        let p = messages.lastChild.lastChild;
         p.innerHTML += data.message; // 에러 메시지를 기존 메시지에 추가
       }
     } else {
-      var div = document.createElement('div');
+      let div = document.createElement('div');
       div.className = 'client-message';
-      var p = document.createElement('p');
+      let p = document.createElement('p');
       p.innerHTML = "<strong>" + "You: " + "</strong>";  // "You: " 문구 추가
       p.innerHTML += data.message; // 사용자 메시지 추가
       div.appendChild(p);
@@ -158,22 +163,63 @@
     }
     // Scroll to the bottom of the chat
     messages.scrollTop = messages.scrollHeight;
+
+    console.log("set timeout is called")
+    activityTimeout = setTimeout(function () {
+      // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
+      ws.close();
+    }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초, 1분)
   };
+
+  ws.onclose = function (event) {
+    disableSendBtn("Send");
+    changeChatHeader("🤖 말씀이 없으셔서 사용을 중단합니다.");
+    if (event.code === 1000) {
+      // 정상적으로 연결이 종료된 경우
+      console.log("WebSocket connection closed.");
+    } else {
+      // 활동 타임아웃 또는 다른 이유로 연결이 종료된 경우
+      console.log("WebSocket connection closed due to inactivity or other reasons.");
+    }
+  };
+
+  function disableSendBtn(btnMsg) {
+    let button = document.getElementById('send');
+    button.innerHTML = btnMsg;
+    button.className = "btn btn-primary disabled"
+    button.disabled = true;
+  }
+
+  function enableSendBtn() {
+    let button = document.getElementById('send');
+    button.innerHTML = "Send";
+    button.className = "btn btn-primary";
+    button.disabled = false;
+  }
+
+  function changeChatHeader(header_msg) {
+    let header = document.getElementById('header');
+    header.innerHTML = header_msg;
+  }
+
   // Send message to server
   function sendMessage(event) {
     event.preventDefault();
-    var message = document.getElementById('messageText').value;
+    let message = document.getElementById('messageText').value;
     if (message === "") {
       return;
     }
     ws.send(message);
     document.getElementById('messageText').value = "";
-
     // Turn the button into a loading button
-    var button = document.getElementById('send');
-    button.innerHTML = "Loading...";
-    button.disabled = true;
+    disableSendBtn("Loading...");
   }
+
+
+  activityTimeout = setTimeout(function () {
+    // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
+    ws.close();
+  }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초, 1분)
 </script>
 
 </html>

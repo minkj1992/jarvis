@@ -20,6 +20,8 @@ from app.wss.callback import (QuestionGenCallbackHandler,
 from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
+DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
+
 cfg = get_config()
 chat_server = FastAPI()
 chat_server.add_middleware(
@@ -115,7 +117,7 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
         # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
         background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid, True)
-        return "죄송합니다 🤖 3초만 더 생각할 시간을 주세요.3초가 지났으면 저를 클릭해주시고,  아래버튼에서\n'생각이다 정리됐니 🤔?'를 눌러주세요"
+        return f"죄송합니다 🤖 3초만 더 생각할 시간을 주세요.3초가 지났으면 저를 클릭해주시고, 아래버튼에서\n'{DEFAULT_CALLBACK_MSG}'를 눌러주세요"
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
         return chat_response
