@@ -137,6 +137,7 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
 
 
     # TODO: default value fix
+    logging.error("User properties: %s", chat_in.userRequest.user.properties)
     user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
     user_message = chat_in.userRequest.utterance
     chat_id = f"{room_uuid}:{user_id}"
@@ -148,7 +149,7 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
             "outputs": [
                 {
                     "simpleText": {
-                        "text": f"[{response['chat_id']}: {response['msg']}]",
+                        "text": f"{response['msg']}",
                         
                     }
                 }
