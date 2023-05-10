@@ -17,8 +17,6 @@ services:
       - "--save 30 10"
       - "--save 6 10000"
       - "--requirepass ${REDIS_PASSWORD}"
-    links:
-      - redis-commander
   app:
     image: jarvisgptacr.azurecr.io/jarvis_app:v1
     container_name: jarvis-api
@@ -54,19 +52,6 @@ services:
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
-  redis-commander:
-    container_name: redis-commander
-    image: rediscommander/redis-commander:latest
-    restart: always
-    environment:
-      REDIS_HOSTS: redis
-      REDIS_HOST: redis
-      REDIS_PORT: redis:6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      HTTP_USER: root
-      HTTP_PASSWORD: ${REDIS_PASSWORD}
-    ports:
-      - "8081:8081"
 volumes:
   redis-data:
     driver: local

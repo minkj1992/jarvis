@@ -205,11 +205,15 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     start_time = time.time()
     # TODO: default value fix
     user_id = chat_in.userRequest.user.properties.get('appUserId', "708203191")
-    user_message = chat_in.action.params.prompt
+    logging.error(chat_in)
+    user_message = chat_in.userRequest.utterance
+    #user_message = chat_in.action.params.prompt
     chat_id = f"{room_uuid}:{user_id}"
     await save_question(redis, chat_id, user_message)
     response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid)
     print(response, time.time() - start_time)
+    logging.error(response['chat_id'])
+    logging.error(response['msg'])
     return KakaoMessageResponse(
         version="2.0",
         template= {
