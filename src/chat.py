@@ -62,15 +62,23 @@ class UserRequest(BaseModel):
     )
         
     class Block(BaseModel):
-        id: str = Field(title="블록을 식별할 수 있는 id.")
+        id: str = Field(title="블록을 식별할 수 있는 id")
 
     user: User
-    block: Block
+    callback_url: Union[str, None] = Field(
+        default=None, 
+        title="kakao callback url",
+        description="callback인 경우, url이 담겨져 옵니다.",
+    )
     utterance: str = Field(title="봇 시스템에 전달된 사용자의 발화입니다.")
 
 
 class KakaoMessageRequest(BaseModel):
     userRequest: UserRequest
+
+    def __init__(**data: Any) -> None:
+        logging.error("Kakao Post Request raw data: %s", data)
+        super().__init__(**data)
 
 
 # Redis 클라이언트를 생성합니다.
@@ -82,18 +90,23 @@ redis = aioredis.from_url(
 )
 
 
-
 # OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
+# 시간 절약을 위해 chat_history는 비웁니다.
 async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str, retry=False) -> str:
     chain = await room_service.get_a_chat_room_chain(room_uuid)
-    # TODO: chat_history is empty, we need memory chat
     result = await chain.acall({"question": user_message, "chat_history": []})
     answer = result.get('answer')
     if retry:
         await save_chat_response(redis, chat_id, answer)
     return answer
 
-async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid, start_time=None) -> str:
+async def get_response_and_store_callback(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
+    redis_response = get_chat_response(redis, chat_id)
+    if redis_response:
+        return redis_response
+    return await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time)
+
+async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_message: str, background_tasks:BackgroundTasks, room_uuid:str, start_time=None) -> str:
     task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
     # 5초 이내에 task가 완료되면 결과를 반환하고,
     # 그렇지 않으면 timeout 예외를 발생시킴
@@ -106,16 +119,11 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
         # TODO: 이걸 막기위해서는 처음부터 background task로 처리하면서 callback으로 이 시점에 알아야 하는데 마땅치 않기 때문에 while로 redis에 값이 있는지 확인해야 한다.
         background_tasks.add_task(get_response, redis, chat_id, user_message, room_uuid, True)
-        return {'msg': "죄송합니다 🤖 3초만 더 생각할 시간을 주세요.", 'chat_id': chat_id}
+        return "죄송합니다 🤖 3초만 더 생각할 시간을 주세요."
     else:
         # task가 timeout초 이내에 완료된 경우에 대한 처리
-        return {'msg': chat_response, 'chat_id': chat_id}
+        return chat_response
 
-
-# async def save_question(redis: aioredis.Redis, chat_id: str, question: str) -> None:
-#     redis_chat_id = f"chat:{chat_id}"
-#     await redis.lpush(redis_chat_id, question)
-#     await redis.expire(redis_chat_id, 3600)  # 1시간 TTL 설정        
 
 async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
     # for background task
@@ -125,6 +133,9 @@ async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str)
         await pipe.expire(redis_chat_id, 600) # 10분
         await pipe.execute()
 
+async def get_chat_response(redis: aioredis.Redis, chat_id: str, response: str) -> None:
+    redis_chat_id = f"chat:{chat_id}"
+    return await redis.lpop(redis_chat_id)
 
 class KakaoMessageResponse(BaseModel):
     version: str
@@ -147,16 +158,14 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     start_time = time.time()
     
     is_friend = True if chat_in.userRequest.user.properties.get('isFriend') else False
-    user_id = chat_in.userRequest.user.properties.get('plusfriendUserKey', "UERkbohv5xgP")
+    user_id = chat_in.userRequest.user.properties.get('botUserKey', "UERkbohv5xgP")
     user_message = chat_in.userRequest.utterance
     chat_id = f"{room_uuid}:{user_id}"
 
     logging.error("Kakao User properties: %s", chat_in.userRequest.user.properties)
-    logging.error(f"Kakao block id: {chat_in.userRequest.block.id}")
     logging.error(f"Kakao Chat id: {chat_id}")
 
-    # await save_question(redis, chat_id, user_message)
-    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time)
+    response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time=start_time)
     return KakaoMessageResponse(
         version="2.0",
         template= {
@@ -170,6 +179,41 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
             ]
         }
     )
+
+
+# API endpoint를 정의합니다.
+@chat_server.post(
+        "/kakao/{room_uuid}/callback", 
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=KakaoMessageResponse,
+        )
+async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:BackgroundTasks) -> str:
+    start_time = time.time()
+    
+    user_id = chat_in.userRequest.user.properties.get('botUserKey', "UERkbohv5xgP")
+    user_message = chat_in.userRequest.utterance
+    is_callback = True if chat_in.userRequest.callback_url else False
+    chat_id = f"{room_uuid}:{user_id}"
+
+    logging.error("Kakao User properties: %s", chat_in.userRequest.user.properties)
+    logging.error(f"Kakao Chat id: {chat_id}")
+    logging.error(f"Kakao is_callback: {is_callback}")
+
+    response = await get_response_and_store_callback(redis, chat_id, user_message, background_tasks, room_uuid, start_time=start_time)
+    return KakaoMessageResponse(
+        version="2.0",
+        template= {
+            "outputs": [
+                {
+                    "simpleText": {
+                        "text": f"{response['msg']}",
+                        
+                    }
+                }
+            ]
+        }
+    )
+
 
 
 async def get_chat_history(chat_id:str):
