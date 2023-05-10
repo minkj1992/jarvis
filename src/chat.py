@@ -97,8 +97,10 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
     task = asyncio.ensure_future(get_response(redis, chat_id, user_message, room_uuid))
     # 5초 이내에 task가 완료되면 결과를 반환하고,
     # 그렇지 않으면 timeout 예외를 발생시킴
+    timeout=(start_time+cfg.kakao_time_out)-time.time()
+    logging.error(f"timeout: {timeout}")
     try:
-        chat_response = await asyncio.wait_for(task, timeout=(start_time+cfg.kakao_time_out)-time.time())
+        chat_response = await asyncio.wait_for(task, timeout=timeout)
     except asyncio.TimeoutError:
         # timeout이 발생한 경우에 대한 처리
         # 백그라운드로 openai에 다시 요청하고, redis에 저장
@@ -120,6 +122,7 @@ async def save_chat_response(redis: aioredis.Redis, chat_id: str, response: str)
     redis_chat_id = f"chat:{chat_id}"
     async with redis.pipeline() as pipe:
         await pipe.lpush(redis_chat_id, response)
+        await pipe.expire(redis_chat_id, 600) # 10분
         await pipe.execute()
 
 
