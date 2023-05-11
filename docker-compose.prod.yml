@@ -17,8 +17,8 @@ services:
       - "--save 30 10"
       - "--save 6 10000"
       - "--requirepass ${REDIS_PASSWORD}"
-    links:
-      - redis-commander
+    networks:
+      - backend
   app:
     image: jarvisgptacr.azurecr.io/jarvis_app:v1
     container_name: jarvis-api
@@ -33,6 +33,8 @@ services:
       - .env
     depends_on:
       - redis
+    networks:
+      - backend
   # https://velog.io/@fordevelop/Docker-Nginx-Certbot-Lets-Encrypt%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%B4-SSL-%EC%9D%B8%EC%A6%9D%EC%84%9C-%EB%B0%9C%EA%B8%89
   nginx:
     container_name: jarvis-nginx
@@ -46,6 +48,8 @@ services:
       - ./data/nginx:/etc/nginx/conf.d
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
+    networks:
+      - backend
   certbot:
     container_name: jarvis-certbot
     image: certbot/certbot:v0.36.0
@@ -67,6 +71,10 @@ services:
       HTTP_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "8081:8081"
+    networks:
+      - backend
 volumes:
   redis-data:
     driver: local
+networks:
+  backend:
