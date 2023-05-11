@@ -93,7 +93,7 @@ redis = aioredis.from_url(
 # OpenAI API를 호출하여 GPT 모델의 응답을 받아옵니다.
 # 시간 절약을 위해 chat_history는 비웁니다.
 async def get_response(redis: aioredis.Redis, chat_id: str, user_message: str, room_uuid:str, retry=False) -> str:
-    chain = await room_service.get_a_chat_room_chain(room_uuid)
+    chain = await room_service.get_a_room_chain(room_uuid)
     result = await chain.acall({"question": user_message, "chat_history": []})
     answer = result.get('answer')
     if retry:
@@ -240,7 +240,7 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
     stream_handler = StreamingLLMCallbackHandler(websocket)
     chat_history = []
 
-    qa_chain = await room_service.get_a_chat_room_stream_chain(room, question_handler, stream_handler)
+    qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
     while True:
         try:
             # Receive and send back the client message

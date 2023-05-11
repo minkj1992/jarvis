@@ -34,7 +34,6 @@ def _get_redis_url() -> str:
 
 
 async def from_texts(docs, metadatas, index_name:UUID4):
-    
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_texts, 
         texts=docs,
@@ -46,6 +45,14 @@ async def from_texts(docs, metadatas, index_name:UUID4):
         ),
         index_name=str(index_name),
         redis_url=_get_redis_url())
+
+async def drop_vectorstore(index_name:UUID4):
+    return await run_in_threadpool(
+        func=RedisVectorStoreForAsync.drop_index,
+        index_name=str(index_name),
+        delete_documents=True,
+        redis_url=_get_redis_url()
+    )
 
 
 async def get_vectorstore(index_name:UUID4):
@@ -61,11 +68,12 @@ async def get_vectorstore(index_name:UUID4):
     )
 
 
-async def update_vectorstore(index_name:UUID4, texts: Iterable[str]):
+async def update_vectorstore(index_name:UUID4, texts: Iterable[str], metadatas: Optional[List[dict]] = None):
     vs = await get_vectorstore(index_name)
     await run_in_threadpool(
         func=vs.add_texts,
         texts=texts,
+        metadatas=metadatas,
     )
 
 

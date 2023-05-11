@@ -1,20 +1,24 @@
 import asyncio
 import logging
 import uuid
+from enum import Enum, auto
+from typing import Dict
 
 from infra import ai, redis
+from infra.redis import Room, update_vectorstore
 from pydantic import UUID4
 
 logger = logging.getLogger(__name__)
 
-async def create_a_room(title, prompt, docs, metadatas=None):
-    room_uuid = uuid.uuid4()
+class RoomInputType(Enum):
+    TEXT = auto()
+    URL = auto()
+    FILE = auto()
+
+
+async def create_a_room(room_uuid, title, prompt):
     room = redis.Room(uuid=room_uuid, title=title, prompt=prompt)
-    
-    await asyncio.gather(
-        redis.from_texts(docs, metadatas, index_name=room_uuid), 
-        room.save()
-    )
+    await room.save()
     return room_uuid
 
 async def get_a_room(room_uuid):
@@ -30,14 +34,102 @@ async def get_a_room(room_uuid):
     return room
 
 
+async def update_a_room(room_uuid, patch_room_data:Dict[str,str]) -> Room:
+    room: Room = await get_a_room(room_uuid)
+    for k, v in patch_room_data.items():
+        setattr(room, k, v)
+    await room.save()
+    
+    return room
 
-async def get_a_chat_room_stream_chain(room: redis.Room, question_handler, stream_handler):
+
+async def delete_a_room(room_uuid) -> int:
+    return await redis.Room.delete(pk=room_uuid)
+
+async def get_a_room_chain(room_uuid):
+    room = await get_a_room(room_uuid)
+    vectorstore = await redis.get_vectorstore(room.uuid)
+    return await ai.get_chain(vectorstore, room.prompt)
+
+
+async def get_a_room_chain_for_stream(room: redis.Room, question_handler, stream_handler):
     vectorstore = await redis.get_vectorstore(room.uuid)
     qa_cahin = await ai.get_chain_stream(vectorstore, room.prompt, question_handler, stream_handler)
     return qa_cahin
 
 
-async def get_a_chat_room_chain(room_uuid):
-    room = await get_a_room(room_uuid)
-    vectorstore = await redis.get_vectorstore(room.uuid)
-    return await ai.get_chain(vectorstore, room.prompt)
+async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: str):
+    if t == RoomInputType.TEXT:
+        texts = await ai.get_docs_from_texts(data)
+        await redis.from_texts(
+            docs=texts, 
+            metadatas=None, 
+            index_name=room_uuid
+        )
+    elif t == RoomInputType.URL:
+        docs, metadatas = await ai.get_docs_and_metadatas_from_urls(data)
+        await redis.from_texts(
+            docs=docs, 
+            metadatas=metadatas, 
+            index_name=room_uuid
+        )
+    elif t == RoomInputType.PDF:
+        ...
+    else:
+        raise Exception("INVALID ROOM INPUT TYPE")
+    
+    return room_uuid
+    
+
+async def append_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -> Room:
+    if input_type == RoomInputType.TEXT:
+        texts = await ai.get_docs_from_texts(data)
+        await update_vectorstore(
+            room_uuid,
+            texts
+        )
+    elif input_type == RoomInputType.URL:
+        docs, metadatas = await ai.get_docs_and_metadatas_from_urls(data)
+        await update_vectorstore(
+            room_uuid,
+            docs,
+            metadatas,
+        )
+    elif input_type == RoomInputType.PDF:
+        ...
+    else:
+        raise Exception("INVALID ROOM INPUT TYPE")    
+    return room_uuid
+
+
+async def change_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -> Room:
+    # keep room_uuid for url link 3rd party
+    if input_type == RoomInputType.TEXT:
+        (texts,_) = await asyncio.gather(
+            ai.get_docs_from_texts(data),
+            delete_a_room_chain(room_uuid),
+        )
+        await redis.from_texts(
+            docs=texts, 
+            metadatas=None, 
+            index_name=room_uuid
+        )
+    elif input_type == RoomInputType.URL:
+        ((docs, metadatas), _) = await asyncio.gather(
+            ai.get_docs_and_metadatas_from_urls(data),
+            delete_a_room_chain(room_uuid),
+        )
+        await redis.from_texts(
+            docs=docs, 
+            metadatas=metadatas, 
+            index_name=room_uuid
+        )
+    elif input_type == RoomInputType.PDF:
+        ...
+    else:
+        raise Exception("INVALID ROOM INPUT TYPE")    
+    return room_uuid
+
+
+async def delete_a_room_chain(room_uuid) -> bool:
+    return await redis.drop_vectorstore(room_uuid)
