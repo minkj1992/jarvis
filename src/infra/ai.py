@@ -18,7 +18,7 @@ from infra.config import get_config
 from infra.jbs4 import extract_doc_metadata_from_url
 
 _cfg = get_config()
-_CHAT_OPEN_AI_TIMEOUT=120
+_CHAT_OPEN_AI_TIMEOUT=240
 
 DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the question at the end in korean. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
