@@ -69,6 +69,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       HTTP_USER: root
       HTTP_PASSWORD: ${REDIS_PASSWORD}
+      URL_PREFIX: /admin
     ports:
       - "8081:8081"
     networks:
@@ -78,3 +79,4 @@ volumes:
     driver: local
 networks:
   backend:
+
