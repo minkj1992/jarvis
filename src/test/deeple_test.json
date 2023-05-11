@@ -1,0 +1,18 @@
+{
+  "title": "디플 v2",
+  "urls": [
+    "https://www.saramin.co.kr/zf_user/jobs/relay/view?isMypage=no&rec_idx=42035303&recommend_ids=eJxtj7sRgEAIRKsx54DlE1uI%2FXehowNHYPh4DLsoDMQeVxAOP3Xgpd%2FAk2T4xvKcYN6%2BsbxY0Nq%2BsfwKrH0f4ezY6xoxrut62uUs%2B%2Fgf7GwltpFdWB4qJuO3EPhA96D5Gaf9YIcl8Da%2FARXvSwA%3D&view_type=mail_landing&gz=1#seq=0",
+    "https://www.nextunicorn.kr/company/a64315491383ec75",
+    "https://www.linkedin.com/company/deeple-ko/?originalSubdomain=kr",
+    "https://deeplehr.notion.site/We-are-DeepLeHR-c1aba4b014d34ed2817887bb1e1e824b#bbea9b01a2474d6d81a9787d5bfc2fea",
+    "https://deeplehr.notion.site/We-are-DeepLeHR-c1aba4b014d34ed2817887bb1e1e824b#d001bb914ca94a8fa3e24540e547c1c9",
+    "https://deeplehr.notion.site/c6e0f4b53d8b4a34b70ff9bc11803126",
+    "https://deeplehr.notion.site/453101d38c5547efac2e6b5aa5aa1091",
+    "https://deeplehr.notion.site/af2192bf95dd426793078adc4d5f77c3",
+    "https://deeplehr.notion.site/DeepLeHR-Archive-38e6638e03ab4aabba5e563ffa10411d",
+    "https://deeplehr.notion.site/c6e699d57b034e9bbe3050f570a343bf",
+    "https://deeplehr.notion.site/34ce937875244b8594f0578c9d5aac7f",
+    "https://deeplehr.notion.site/1-6ce729f34b044e68a63d914af6952a21"
+  ],
+  "prompt": "I wnat you to act as a software front-end interviewer for a company DeepLe(디플). Use the following pieces of context to answer the question or ask a question to interviewee at the end in korean. \n\n{context}\n\nQuestion: {question}\n!IMPORTANT Answer in korean:"
+}

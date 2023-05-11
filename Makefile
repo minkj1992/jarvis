@@ -21,8 +21,7 @@ push:
 	docker compose -f docker-compose.prod.yml push
 
 deploy:
-	git pull
-	docker compose --file docker-compose.prod.yml up --build -d
+	docker compose --file docker-compose.prod.yml up --build -d --remove-orphans
 
 prod-down:
 	docker compose --file docker-compose.prod.yml down
