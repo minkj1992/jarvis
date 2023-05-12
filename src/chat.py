@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Union
 
 import aioredis
 import openai
+import websockets
 from fastapi import (BackgroundTasks, FastAPI, HTTPException, Request,
                      WebSocket, WebSocketDisconnect, status)
 from fastapi.exceptions import RequestValidationError
@@ -23,7 +24,6 @@ from infra.config import get_config
 DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
 DEFAULT_KAKAO_TIMEOUT_MSG = f"⚠️ 죄송합니다 5초만 더 생각할 시간을 주세요.\n5초가 지났으면 저를 클릭해주시고, 아래버튼에서 아래 문구를 눌러주세요.\n\n'{DEFAULT_CALLBACK_MSG}'"
 DEFAULT_CALLBACK_UNPREPARED_MSG = '⚠️ 아직 생각이 정리되지 않았습니다. 혹시 5초가 지났을까요?'
-
 cfg = get_config()
 chat_server = FastAPI()
 chat_server.add_middleware(
@@ -43,7 +43,7 @@ async def get(request: Request, room_uuid:str):
     room = await room_service.get_a_room(room_uuid)
     if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
-    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": json.dumps(room_uuid)})
+    return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": str(room_uuid)})
 
 @chat_server.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -225,8 +225,6 @@ async def chat_history(chat_id: str) -> List[str]:
     return [msg for msg in chat_history]
 
 
-
-
 # REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
 # REFS: https://github.com/hwchase17/chat-langchain/blob/master/main.py
 @chat_server.websocket("/{room_uuid}")
@@ -242,41 +240,47 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
 
     qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
     while True:
-        try:
+        try:            
             # Receive and send back the client message
-            question = await websocket.receive_text()
-            resp = ChatResponse(sender="Human", message=question, type="stream")
+            client_msg = await websocket.receive_text()
+
+            resp = ChatResponse(sender="Human", message=client_msg, type="stream")
             await websocket.send_json(resp.dict())
 
             # Construct a response
+            # TODO: 1. 이거 왜 필요한거야?
             start_resp = ChatResponse(sender="Assistant", message="", type="start")
             await websocket.send_json(start_resp.dict())
             try:
+
                 result = await qa_chain.acall(
-                    {"question": question, "chat_history": chat_history}
+                    {"question": client_msg, "chat_history": chat_history}
                 )
             except openai.error.InvalidRequestError as err:
                 # handle 4097 error clear chat_history and retry once again
                 logging.error(err)
                 chat_history = []
                 result = await qa_chain.acall(
-                    {"question": question, "chat_history": chat_history}
+                    {"question": client_msg, "chat_history": chat_history}
                 )
 
 
-            chat_history.append((question, result["answer"]))
-
+            chat_history.append((client_msg, result["answer"]))
+            # TODO: 2. 이거 왜 필요한거야
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
-        except WebSocketDisconnect:
-            logging.info("websocket disconnect")
+        except websockets.exceptions.ConnectionClosedOK:
+            logging.error("websocket connections closed ok")
+            break
+        except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedError):
+            logging.error("websocket disconnect")
             break
         except Exception as e:
-            logging.error(e, exc_info=True)
+            logging.error(e)
             resp = ChatResponse(
                 sender="Assistant",
-                message="Sorry, something went wrong. Try again.",
+                message="죄송하니다 잠시 문제가 발생하였습니다.🤖 새로고침을 눌러주세요.",
                 type="error",
             )
             await websocket.send_json(resp.dict())
-
+            break

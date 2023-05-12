@@ -107,9 +107,8 @@
 
 
 <script>
-  const CHAT_TIMEOUT = 120000; // 2분
-
-  const room_uuid = {{ room_uuid | safe }};
+  const CHAT_TIMEOUT = 240000; // 4분
+  const room_uuid = "{{ room_uuid | safe }}";
   const base_url = "{{ base_url | safe }}";
   let activityTimeout;
 
@@ -219,7 +218,7 @@
   activityTimeout = setTimeout(function () {
     // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
     ws.close();
-  }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초, 1분)
+  }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초)
 </script>
 
 </html>
