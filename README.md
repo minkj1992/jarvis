@@ -20,7 +20,7 @@
 <table width="100%" border="0">
   <tr>    
   <td><img src="docs/wss1.png" alt="" align="left" /></td>
-  <td><img src="docs/wss1.png" alt="" align="right"/></td>
+  <td><img src="docs/wss2.png" alt="" align="right"/></td>
   </tr>
 </table>
 
@@ -82,3 +82,7 @@ $ make prod-down && make deploy
 $ make ssh
 ```
 
+
+## refs
+- [wss](https://github.com/tiangolo/fastapi/issues/3008#issuecomment-1031293342)
+- 

@@ -38,4 +38,4 @@ ssh:
 	ssh -i jarvisVM_key.pem azureuser@20.39.184.5
 
 info:
-	docker logs -f jarvis-api
+	docker compose logs -f
