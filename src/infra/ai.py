@@ -4,8 +4,7 @@ from typing import Any, List
 
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
-                                                     QA_PROMPT)
+from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
@@ -90,7 +89,6 @@ class MyChain(ConversationalRetrievalChain):
             while token_count > self.max_tokens_limit:
                 num_docs -= 1
                 token_count -= tokens[num_docs]
-
         return docs[:num_docs]
 
 
@@ -102,7 +100,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
     question_generator = LLMChain(
         llm=ChatOpenAI(
             openai_api_key=_cfg.openai_api_key,
-            temperature=0.7,
+            temperature=0,
             callback_manager=AsyncCallbackManager([question_handler]),
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
             model_name="gpt-3.5-turbo",
@@ -111,6 +109,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         callback_manager=manager,
         verbose=True,
     )
+    
     streaming_llm = ChatOpenAI(
         streaming=True,
         temperature=0.7,
