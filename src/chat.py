@@ -17,8 +17,7 @@ from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.services import room_service
-from app.wss.callback import (QuestionGenCallbackHandler,
-                              StreamingLLMCallbackHandler)
+from app.wss.callback import StreamingLLMCallbackHandler
 from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
@@ -233,10 +232,9 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     
     await websocket.accept()
-    question_handler = QuestionGenCallbackHandler(websocket)
     stream_handler = StreamingLLMCallbackHandler(websocket)
 
-    qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
+    qa_chain = await room_service.get_a_room_chain_for_stream(room, stream_handler)
     
     try:
         while websocket.client_state == WebSocketState.CONNECTED:        

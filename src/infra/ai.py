@@ -19,13 +19,6 @@ _cfg = get_config()
 _CHAT_OPEN_AI_TIMEOUT=240
 
 
-_template = """
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question:"""
-CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
-
 
 DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the question at the end in korean. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
@@ -34,19 +27,6 @@ DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the q
 Question: {question}
 !IMPORTANT Answer in korean:"""
 
-"""Answer the question based on the context below. If the
-question cannot be answered using the information provided answer
-with "I don't know".
-
-Context: Large Language Models (LLMs) are the latest models used in NLP.
-Their superior performance over smaller models has made them incredibly
-useful for developers building NLP enabled applications. These models
-can be accessed via Hugging Face's `transformers` library, via OpenAI
-using the `openai` library, and via Cohere using the `cohere` library.
-
-Question: Which libraries and model providers offer LLMs?
-
-Answer: """
 
 async def get_docs_from_texts(texts:str):
     docs = []
@@ -114,22 +94,11 @@ class MyChain(ConversationalRetrievalChain):
 
 
 
-async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler , stream_handler: AsyncCallbackHandler):
+async def get_chain_stream(vs: VectorStore, prompt:str, stream_handler: AsyncCallbackHandler):
     manager = AsyncCallbackManager([])
     qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
 
-    question_generator = LLMChain(
-        llm=ChatOpenAI(
-            openai_api_key=_cfg.openai_api_key,
-            temperature=0,
-            callback_manager=AsyncCallbackManager([question_handler]),
-            request_timeout=_CHAT_OPEN_AI_TIMEOUT,
-            model_name="gpt-3.5-turbo",
-            ),
-        prompt=CONDENSE_QUESTION_PROMPT,
-        callback_manager=manager,
-        verbose=True,
-    )
+    mock_question_generator = LLMChain()
     
     streaming_llm = ChatOpenAI(
         streaming=True,
@@ -151,7 +120,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
     return MyChain(
         retriever=vs.as_retriever(search_kwargs={'k':4}),
         combine_docs_chain=doc_chain,
-        question_generator=question_generator,
+        question_generator=mock_question_generator,
         callback_manager=manager,
         max_tokens_limit=_cfg.max_token_limit
     )

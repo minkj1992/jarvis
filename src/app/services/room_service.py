@@ -52,10 +52,12 @@ async def get_a_room_chain(room_uuid):
     return await ai.get_chain(vectorstore, room.prompt)
 
 
-async def get_a_room_chain_for_stream(room: redis.Room, question_handler, stream_handler):
+async def get_a_room_chain_for_stream(room: redis.Room, stream_handler):
     vectorstore = await redis.get_vectorstore(room.uuid)
-    qa_cahin = await ai.get_chain_stream(vectorstore, room.prompt, question_handler, stream_handler)
+    qa_cahin = await ai.get_chain_stream(vectorstore, room.prompt, stream_handler)
     return qa_cahin
+
+
 
 
 async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: str):
