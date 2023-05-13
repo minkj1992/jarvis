@@ -1,4 +1,4 @@
-.PHONY: dev build up down destroy app-shell redis-shell push deploy prod-down ssh info
+.PHONY: dev build up down destroy app-shell redis-shell push deploy ssh info
 
 dev:
 	poetry run uvicorn --host=127.0.0.1 main:app
@@ -21,10 +21,9 @@ push:
 	docker compose -f docker-compose.prod.yml push
 
 deploy:
-	docker compose --file docker-compose.prod.yml up --build -d --remove-orphans
-
-prod-down:
+	git pull
 	docker compose --file docker-compose.prod.yml down
+	docker compose --file docker-compose.prod.yml up --build -d --remove-orphans
 
 app-shell:
 	docker exec -it jarvis-app-1 sh

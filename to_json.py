@@ -2,16 +2,16 @@
 import json
 import re
 
-internet_text = """제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.
-제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.제민욱은 잘생긴 대한민국 남자로써 100억대 부자이다.
+internet_text="""테스트 텍스트, 테스트 텍스트
+테스트 텍스트
+테스트 텍스트
+테스트 텍스트
 """
 
-
-
 def preprocess_text(text):
-    processed_text = text.replace("[편집]", "")
-    processed_text = processed_text.replace("'", "")
+    processed_text = text.replace("'", "")
     processed_text = processed_text.replace('"', "")
+    processed_text = processed_text.replace("", "")
     processed_text = processed_text.replace("{", "")
     processed_text = processed_text.replace("}", "")
     processed_text = processed_text.replace("\n", "\\n")
