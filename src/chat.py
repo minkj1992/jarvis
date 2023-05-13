@@ -235,7 +235,6 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
     await websocket.accept()
     question_handler = QuestionGenCallbackHandler(websocket)
     stream_handler = StreamingLLMCallbackHandler(websocket)
-    chat_history = []
 
     qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
     
@@ -252,19 +251,10 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             await websocket.send_json(start_resp.dict())
             
             # 2. Generate Chat Response
-            try:
 
-                result = await qa_chain.acall(
-                    {"question": client_msg, "chat_history": chat_history}
-                )
-            except openai.error.InvalidRequestError as err:
-                # handle 4097 error clear chat_history and retry once again
-                logging.error(err)
-                chat_history = []
-                result = await qa_chain.acall(
-                    {"question": client_msg, "chat_history": chat_history}
-                )
-            chat_history.append((client_msg, result["answer"]))
+            result = await qa_chain.acall(
+                {"question": client_msg, "chat_history": []}
+            )
 
             # 3. Send Chat end message
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
