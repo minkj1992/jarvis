@@ -115,6 +115,23 @@
   // const ws = new WebSocket(`ws://${base_url}/chat/${room_uuid}`);
   const ws = new WebSocket(`wss://${base_url}/chat/${room_uuid}`);
 
+
+  function onCloseFunc() {
+    // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+  }
+
+  ws.onopen = function (event) {
+    // 요청을 보내기 전에 웹소켓 연결이 닫혔는지 확인합니다.
+    if (ws.readyState === WebSocket.CLOSED) {
+      ws.open();
+    }
+
+    activityTimeout = setTimeout(onCloseFunc, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초)
+  }
+
   // Receive message from server word by word. Display the words as they are received.
   ws.onmessage = function (event) {
     // 활동 상태 업데이트
@@ -164,10 +181,7 @@
     messages.scrollTop = messages.scrollHeight;
 
     console.log("set timeout is called")
-    activityTimeout = setTimeout(function () {
-      // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
-      ws.close();
-    }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초, 1분)
+    activityTimeout = setTimeout(onCloseFunc, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초)
   };
 
   ws.onclose = function (event) {
@@ -214,11 +228,6 @@
     disableSendBtn("Loading...");
   }
 
-
-  activityTimeout = setTimeout(function () {
-    // 일정 시간 동안 메시지가 없는 경우 서버로 close 요청 보내기
-    ws.close();
-  }, CHAT_TIMEOUT); // 활동이 없는 시간 (밀리초)
 </script>
 
 </html>

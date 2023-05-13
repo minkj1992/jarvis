@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.services import room_service
 from app.wss.callback import (QuestionGenCallbackHandler,
@@ -225,8 +226,6 @@ async def chat_history(chat_id: str) -> List[str]:
     return [msg for msg in chat_history]
 
 
-# REFS: https://fastapi.tiangolo.com/advanced/websockets/#handling-disconnections-and-multiple-clients
-# REFS: https://github.com/hwchase17/chat-langchain/blob/master/main.py
 @chat_server.websocket("/{room_uuid}")
 async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
     room = await room_service.get_a_room(room_uuid)
@@ -239,18 +238,20 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
     chat_history = []
 
     qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
-    while True:
-        try:            
+    
+    try:
+        while websocket.client_state == WebSocketState.CONNECTED:        
             # Receive and send back the client message
             client_msg = await websocket.receive_text()
 
             resp = ChatResponse(sender="Human", message=client_msg, type="stream")
             await websocket.send_json(resp.dict())
 
-            # Construct a response
-            # TODO: 1. 이거 왜 필요한거야?
+            # 1. Send Chat start message
             start_resp = ChatResponse(sender="Assistant", message="", type="start")
             await websocket.send_json(start_resp.dict())
+            
+            # 2. Generate Chat Response
             try:
 
                 result = await qa_chain.acall(
@@ -263,24 +264,13 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
                 result = await qa_chain.acall(
                     {"question": client_msg, "chat_history": chat_history}
                 )
-
-
             chat_history.append((client_msg, result["answer"]))
-            # TODO: 2. 이거 왜 필요한거야
+
+            # 3. Send Chat end message
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
-        except websockets.exceptions.ConnectionClosedOK:
-            logging.error("websocket connections closed ok")
-            break
-        except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedError):
-            logging.error("websocket disconnect")
-            break
-        except Exception as e:
-            logging.error(e)
-            resp = ChatResponse(
-                sender="Assistant",
-                message="죄송하니다 잠시 문제가 발생하였습니다.🤖 새로고침을 눌러주세요.",
-                type="error",
-            )
-            await websocket.send_json(resp.dict())
-            break
+    except WebSocketDisconnect:
+        logging.error("websocket disconnect")
+    except Exception as e:
+        logging.error(e, exc_info=True)
+
