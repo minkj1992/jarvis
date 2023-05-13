@@ -4,6 +4,8 @@ from typing import Any, List
 
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
+from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
+                                                     QA_PROMPT)
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
@@ -17,6 +19,14 @@ from infra.jbs4 import extract_doc_metadata_from_url
 
 _cfg = get_config()
 _CHAT_OPEN_AI_TIMEOUT=240
+
+condense_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+
+Chat History:
+{chat_history}
+Follow Up Input: {question}
+Standalone question:"""
+CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(condense_template)
 
 
 
@@ -98,7 +108,16 @@ async def get_chain_stream(vs: VectorStore, prompt:str, stream_handler: AsyncCal
     manager = AsyncCallbackManager([])
     qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
 
-    mock_question_generator = LLMChain()
+    question_generator = LLMChain(
+        llm=ChatOpenAI(
+            openai_api_key=_cfg.openai_api_key,
+            temperature=0,
+            request_timeout=_CHAT_OPEN_AI_TIMEOUT,
+            model_name="gpt-3.5-turbo",
+        ),
+        prompt=CONDENSE_QUESTION_PROMPT,
+        verbose=True,
+    )
     
     streaming_llm = ChatOpenAI(
         streaming=True,
@@ -120,8 +139,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, stream_handler: AsyncCal
     return MyChain(
         retriever=vs.as_retriever(search_kwargs={'k':4}),
         combine_docs_chain=doc_chain,
-        question_generator=mock_question_generator,
+        question_generator=question_generator,
         callback_manager=manager,
         max_tokens_limit=_cfg.max_token_limit
     )
-
