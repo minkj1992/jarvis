@@ -104,7 +104,7 @@ class MyChain(ConversationalRetrievalChain):
 
 
 
-async def get_chain_stream(vs: VectorStore, prompt:str, stream_handler: AsyncCallbackHandler):
+async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler, stream_handler: AsyncCallbackHandler):
     manager = AsyncCallbackManager([])
     qa_prompt = PromptTemplate(template=prompt, input_variables=["context", "question"])
 
@@ -112,9 +112,10 @@ async def get_chain_stream(vs: VectorStore, prompt:str, stream_handler: AsyncCal
         llm=ChatOpenAI(
             openai_api_key=_cfg.openai_api_key,
             temperature=0,
+            callback_manager=AsyncCallbackManager([question_handler]), 
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
             model_name="gpt-3.5-turbo",
-        ),
+            ),
         prompt=CONDENSE_QUESTION_PROMPT,
         verbose=True,
     )

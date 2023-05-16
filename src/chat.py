@@ -17,7 +17,8 @@ from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.services import room_service
-from app.wss.callback import StreamingLLMCallbackHandler
+from app.wss.callback import (QuestionGenCallbackHandler,
+                              StreamingLLMCallbackHandler)
 from app.wss.schemas import ChatResponse
 from infra.config import get_config
 
@@ -232,9 +233,11 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     
     await websocket.accept()
+    question_handler = QuestionGenCallbackHandler(websocket)
     stream_handler = StreamingLLMCallbackHandler(websocket)
+    chat_history = []
 
-    qa_chain = await room_service.get_a_room_chain_for_stream(room, stream_handler)
+    qa_chain = await room_service.get_a_room_chain_for_stream(room, question_handler, stream_handler)
     
     try:
         while websocket.client_state == WebSocketState.CONNECTED:        
@@ -249,16 +252,26 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             await websocket.send_json(start_resp.dict())
             
             # 2. Generate Chat Response
+            try:
+                result = await qa_chain.acall(
+                    {"question": client_msg, "chat_history": chat_history}
+                )
+            except openai.error.InvalidRequestError:
+                # handle 4097 error clear chat_history and retry once again
+                chat_history = []
+                result = await qa_chain.acall(
+                    {"question": client_msg, "chat_history": chat_history}
+                )
+            
+            chat_history.append((client_msg, result["answer"]))
 
-            result = await qa_chain.acall(
-                {"question": client_msg, "chat_history": []}
-            )
-
-            # 3. Send Chat end message
+            # 3. Send Chat start message
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
     except WebSocketDisconnect:
         logging.error("websocket disconnect")
     except Exception as e:
         logging.error(e, exc_info=True)
+    finally:
+        await websocket.close()
 
