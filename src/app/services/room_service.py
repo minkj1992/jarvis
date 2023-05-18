@@ -2,11 +2,11 @@ import asyncio
 import logging
 import uuid
 from enum import Enum, auto
-from typing import Dict
+from typing import Any, Dict
 
+from app.exceptions import InvalidRoomInputTypeException
 from infra import ai, redis
 from infra.redis import Room, update_vectorstore
-from pydantic import UUID4
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ async def get_a_room_chain_for_stream(room: redis.Room, question_handler, stream
     return qa_cahin
 
 
-async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: str):
+async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: Any):
     if t == RoomInputType.TEXT:
         texts = await ai.get_docs_from_texts(data)
         await redis.from_texts(
@@ -73,10 +73,13 @@ async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: str):
             metadatas=metadatas, 
             index_name=room_uuid
         )
-    elif t == RoomInputType.PDF:
-        ...
+    elif t == RoomInputType.FILE:
+        await redis.from_documents(
+            docs=data,
+            index_name=room_uuid
+        )
     else:
-        raise Exception("INVALID ROOM INPUT TYPE")
+        raise InvalidRoomInputTypeException(t)
     
     return room_uuid
     
@@ -95,7 +98,7 @@ async def append_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -
             docs,
             metadatas,
         )
-    elif input_type == RoomInputType.PDF:
+    elif input_type == RoomInputType.FILE:
         ...
     else:
         raise Exception("INVALID ROOM INPUT TYPE")    
@@ -124,7 +127,7 @@ async def change_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -
             metadatas=metadatas, 
             index_name=room_uuid
         )
-    elif input_type == RoomInputType.PDF:
+    elif input_type == RoomInputType.FILE:
         ...
     else:
         raise Exception("INVALID ROOM INPUT TYPE")    

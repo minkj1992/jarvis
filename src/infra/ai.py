@@ -2,6 +2,7 @@ import asyncio
 import logging
 from typing import Any, List
 
+import tiktoken
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
@@ -37,10 +38,26 @@ DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the q
 Question: {question}
 !IMPORTANT Answer in korean:"""
 
+# https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+
+# for Codex models, text-davinci-002, text-davinci-003
+P_TOKENIZER = tiktoken.get_encoding('p50k_base') 
+# for gpt-4, gpt-3.5-turbo, text-embedding-ada-002
+C_TOKENIZER = tiktoken.get_encoding('cl100k_base') 
+
+# TODO: length_function=_tiktoken_len and find where to set tokenizer?
+def _tiktoken_len(docs):
+    docs = C_TOKENIZER.encode(
+        docs,
+        disallowed_special=()
+    )
+    return len(docs)
+
+
 
 async def get_docs_from_texts(texts:str):
     docs = []
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, separators=["\n\n", "\n", " ", ""])
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
     for chunk in text_splitter.split_text(texts):
         docs.append(chunk)
     return docs
@@ -50,7 +67,7 @@ async def get_docs_and_metadatas_from_urls(urls):
     docs = []
     metadatas = []
     
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, separators=["\n\n", "\n", " ", ""])
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
     result = await asyncio.gather(
         *[extract_doc_metadata_from_url(url) for url in urls]
     )
@@ -114,7 +131,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
             temperature=0,
             callback_manager=AsyncCallbackManager([question_handler]), 
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
-            model_name="gpt-3.5-turbo",
+            model_name=_cfg.qa_model,
             ),
         prompt=CONDENSE_QUESTION_PROMPT,
         verbose=True,
@@ -126,7 +143,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         openai_api_key=_cfg.openai_api_key, 
         callback_manager=AsyncCallbackManager([stream_handler]), 
         request_timeout=_CHAT_OPEN_AI_TIMEOUT,
-        model_name="gpt-3.5-turbo",
+        model_name=_cfg.qa_model,
         verbose=True,
     )
     

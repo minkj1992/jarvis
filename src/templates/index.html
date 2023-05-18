@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6112497523452008"
-     crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>
   <style>
     body {
       font-size: 14px;
@@ -109,7 +109,7 @@
 
 
 <script>
-  const CHAT_TIMEOUT = 240000; // 4분
+  const CHAT_TIMEOUT = 360000; // 4분, 600s(10분) is openai's max timeout
   const room_uuid = "{{ room_uuid | safe }}";
   const base_url = "{{ base_url | safe }}";
   let activityTimeout;

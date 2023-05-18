@@ -4,14 +4,14 @@ import uuid
 from typing import List, Union
 
 from aredis_om.model import NotFoundError
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, UploadFile, status
 from pydantic import UUID4, BaseModel, Field, HttpUrl
 from starlette.responses import Response
 
 from app.exceptions import RoomChainNotFoundException, RoomNotFoundException
 from app.services import room_service
 from app.services.room_service import RoomInputType
-from infra import ai
+from infra import ai, loader
 from infra.redis import Room
 
 router = APIRouter(prefix='/rooms')
@@ -95,6 +95,45 @@ async def create_a_room_with_text(room_in: CreateRoomTextRequest,):
         )
     )
     return RoomResponse(room_uuid=room_uuid)
+
+
+from fastapi import Depends, File, UploadFile
+
+
+class CreateRoomFileRequest(BaseModel):
+    title: str = Field(title="챗봇명")
+    prompt: Union[str, None] = Field(
+        default=ai.DEFAULT_PROMPT_TEMPLATE, 
+        title="챗봇이 QA할 prompt",
+    )
+
+
+@router.post(
+        "/file", 
+        status_code=status.HTTP_200_OK,
+        response_model=RoomResponse,
+        )
+async def create_a_room_with_file(room_in: CreateRoomFileRequest = Depends(), file: UploadFile=File(...)):
+    room_uuid = uuid.uuid4()
+
+    (saved_room_uuid, docs) = await asyncio.gather(
+        room_service.create_a_room(
+            room_uuid,
+            room_in.title,
+            room_in.prompt,
+        ),
+        loader.from_file(file.filename, file.file)
+    )
+
+    print(room_uuid, docs)
+    await room_service.create_a_room_chain(
+            room_uuid,
+            RoomInputType.FILE,
+            data=docs,
+    )
+
+    return RoomResponse(room_uuid=saved_room_uuid)
+
 
 
 class PatchChatRoomByTextRequest(BaseModel):
