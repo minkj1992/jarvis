@@ -9,7 +9,8 @@ class Cfg(BaseSettings):
     base_url: str
     redis_uri: str
     openai_api_key: str
-    openai_model: str
+    embedding_model: str
+    qa_model: str
     max_crawl_page: int
     max_token_limit: int
     redis_host: str
