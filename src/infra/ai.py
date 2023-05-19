@@ -31,7 +31,7 @@ CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(condense_template)
 
 
 
-DEFAULT_PROMPT_TEMPLATE = """Use the following pieces of context to answer the question at the end in korean. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+DEFAULT_PROMPT_TEMPLATE = """I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not included, say exactly "음... 잘 모르겠어요." and stop after that. Refuse to answer any question not about the info. Never break character.
 
 {context}
 
