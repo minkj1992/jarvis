@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/")
 async def greet(request: Request):
     current_time = datetime.utcnow()
-    return templates.TemplateResponse("prompt.html")
+    return templates.TemplateResponse("prompt.html", {"request": request})
 
 
 @router.get("/ping", status_code=status.HTTP_200_OK)
