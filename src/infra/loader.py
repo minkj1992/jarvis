@@ -4,6 +4,7 @@ for example urls, pdf, excel, .doc file, youtube ...
 
 import logging
 import mimetypes
+from enum import Enum
 from typing import IO, List
 
 from fastapi.concurrency import run_in_threadpool
@@ -17,6 +18,11 @@ from unstructured.partition.auto import partition
 
 from app.exceptions import FileEmptyContentsException, InvalidFileExtException
 
+
+class UnstructuredFileStrategy(str, Enum):
+    FAST = "fast"
+    HI_RES = "hi_res"
+    OCR_ONLY = "ocr_only"
 
 class JarvisFileLoader:
     """Jarvis file loader class for multi-part files.
@@ -59,7 +65,7 @@ class JarvisFileLoader:
             ...
         else:
             try:
-                elements = partition(file=file)
+                elements = partition(file=file, strategy=UnstructuredFileStrategy.FAST)
                 if elements == []:
                     raise FileEmptyContentsException(file_name=file_name)
                 text = "\n\n".join([str(el) for el in elements])
