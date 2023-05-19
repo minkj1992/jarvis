@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Terminal UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      height: 100vh;
+    }
+
+
+    .cursor {
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body class="flex items-center justify-center">
+  <div id="terminal" class="w-3/4">
+    <div class="w-full shadow-2xl subpixel-antialiased rounded-lg h-64 bg-black border-black mx-auto">
+      <div class="flex items-center h-6 rounded-t-lg bg-gray-100 border-b border-gray-500 text-center text-black"
+        id="headerTerminal">
+        <div class="flex ml-2 items-center text-center border-red-900 bg-red-500 shadow-inner rounded-full w-3 h-3"
+          id="closebtn">
+        </div>
+        <div class="ml-2 border-yellow-900 bg-yellow-500 shadow-inner rounded-full w-3 h-3" id="minbtn">
+        </div>
+        <div class="ml-2 border-green-900 bg-green-500 shadow-inner rounded-full w-3 h-3" id="maxbtn">
+        </div>
+        <div class="mx-auto pr-16" id="terminaltitle">
+          <p class="text-center text-sm">Awesome prompt</p>
+        </div>
+
+      </div>
+      <div class="pl-1 pt-1 h-auto rounded-b-lg text-green-200 font-mono text-xs bg-black" id="console">
+        <p class="pb-1">Last login: Fri Sep 24 09:11:04 on ttys002</p>
+        <p class="pb-1">minkj1992@MacBook-Pro$ Default Prompt</p>
+        <p class="text-yellow-200">"""I want you to act as a document that I am having a
+          conversation with.
+          Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not
+          included, say exactly "음... 잘 모르겠어요." and stop after that. Refuse to answer any question not about the info.
+          Never break character.
+
+          {context}
+
+          Question: {question}
+          !IMPORTANT Answer in korean:
+          """
+        </p>
+        </p>
+        <p>minkj1992@MacBook-Pro$ <span class="cursor"></span></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  const user = "minkj1992@MacBook-Pro$ "
+  window.addEventListener('DOMContentLoaded', (event) => {
+    // 사용자 입력을 처리하는 함수
+    function handleInput(e) {
+      if (e.key === "Enter") {  // Enter 키를 눌렀을 때
+        e.preventDefault();  // 기본 Enter 키 이벤트를 방지
+        var consoleDiv = document.getElementById('console');
+        var newP = document.createElement("p");
+        newP.textContent = user + e.target.textContent;
+        newP.classList.add("pb-1");
+        consoleDiv.appendChild(newP);
+
+        // 입력을 지우고 커서를 다시 표시
+        e.target.textContent = '';
+      }
+    }
+
+    var terminalInput = document.createElement('p');
+    terminalInput.contentEditable = true;  // 사용자가 편집할 수 있도록
+    terminalInput.style.outline = "none";  // 편집 가능한 요소에 대한 기본 테두리 제거
+    terminalInput.id = "terminalInput";
+    terminalInput.classList.add("cursor");
+    terminalInput.addEventListener('keydown', handleInput);
+
+    document.getElementById('console').appendChild(terminalInput);
+  });
+</script>
+
+</html>

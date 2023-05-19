@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
+from fastapi.templating import Jinja2Templates
 
 from infra.config import get_config
 
@@ -8,10 +9,13 @@ router = APIRouter()
 cfg = get_config()
 
 
-@router.get("/", status_code=status.HTTP_200_OK)
-async def greet():
+templates = Jinja2Templates(directory="templates")
+
+
+@router.get("/")
+async def greet(request: Request):
     current_time = datetime.utcnow()
-    return {'message':f"Jarvis API Server ({cfg.phase}) 🤖(UTC: {current_time.strftime('%Y.%m.%d %H:%M:%S')})"}
+    return templates.TemplateResponse("prompt.html")
 
 
 @router.get("/ping", status_code=status.HTTP_200_OK)
