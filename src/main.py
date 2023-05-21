@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import crawl, greet, rooms
+from app.api import crawl, greet, partners, rooms
 from chat import chat_server
 from infra.config import get_config
 
@@ -29,6 +29,7 @@ app.mount("/chat", chat_server)
 app.include_router(greet.router)
 app.include_router(crawl.router)
 app.include_router(rooms.router)
+app.include_router(partners.router)
 
 
 @app.on_event("startup")
