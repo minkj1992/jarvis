@@ -34,13 +34,10 @@ async def signout(pk: str, response: Response):
 
 @router.post("/pay/callback", status_code=status.HTTP_200_OK)
 async def pay_callback(request: Request):
-    pay_in = await request.json()
+    # i.g) b'state=1&errorMessage=&mul_no=2000&payurl=http%3A%2F%2Fpayapp.kr%2F000000000000'
+    pay_in = await request.body()
     logging.error(pay_in)
     return JSONResponse("SUCCESS")
-    
-    # update token 갯수 /month
-    # acc
-    ...
 
 
 
