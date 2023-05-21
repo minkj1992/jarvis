@@ -34,7 +34,7 @@ redis-shell:
 		/bin/bash -ci 'redis-cli --raw'
 
 ssh:
-	ssh -i jarvisVM_key.pem azureuser@20.39.184.5
+	gcloud compute ssh jarvis-instance
 
 info:
 	docker compose logs -f

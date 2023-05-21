@@ -136,3 +136,7 @@ src/pyproject.toml
 
 jarvisVM_key.pem
 data/certbot
+
+# ssh and github in vm
+id_ed25519
+id_ed25519.pub

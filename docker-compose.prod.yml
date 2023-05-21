@@ -24,7 +24,8 @@ services:
     container_name: jarvis-api
     build: .
     restart: always
-    command: uvicorn main:app --proxy-headers --workers 3 --host=0.0.0.0 --port 8080
+    # vCPU * 1.5
+    command: uvicorn main:app --proxy-headers --workers 6 --host=0.0.0.0 --port 8080
     expose:
       - "8080"
     ports:
@@ -80,4 +81,5 @@ volumes:
     driver: local
 networks:
   backend:
+
 
