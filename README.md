@@ -99,37 +99,16 @@ $ make ssh
 2. run script to deploy vm
 
 ```bash
-$ ./deploy_gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-instance
-```
-3. Set Nameserver (i.g [가비아](https://customer.gabia.com/manual/domain/286/991))
-
-4. Git 
-5. [docker install on ubuntu](https://docs.docker.com/engine/install/ubuntu/)
-
-```bash
-sudo apt-get update
-sudo apt-get install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-sudo usermod -aG docker ${USER}
+$ ./deploy_gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
 ```
 
-- docker build with pip install
-    - [solution](https://blockchainstudy.tistory.com/59)
-
-```
-#0 136.5 ERROR: Could not install packages due to an OSError: [Errno 28] No space left on device
-#0 136.5
-#0 136.7 WARNING: You are using pip version 22.0.4; however, version 23.1.2 is available.
-#0 136.7 You should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.
-```
+3. [Set google cloud dns, fixed IP](https://cloud.google.com/dns/docs/zones?hl=ko&_gl=1*1hbu6r9*_ga*MTk3NjgxMjk4LjE2ODQ2Njg5Mzc.*_ga_WH2QY8WWF5*MTY4NDczNzIyNC4yLjEuMTY4NDc0MjI3OC4wLjAuMA..&_ga=2.9878517.-197681298.1684668937)
+    - ![](./docs/google-ip.png)
+4. Set Nameserver and Set IP
+    - (i.g [가비아](https://customer.gabia.com/manual/domain/286/991))
+5. `./init_vm.sh`
+6. ./data/nginx/app.conf의 https 파트 주석 처리 (lets encrypt 스크립트로 pem 만들기 위해서)
+    - [만약 주석처리하지 않는 경우, nginx가 ssl을 찾지 못해 실행되지 않아, `connection refused error`가 발생한다.](https://stackoverflow.com/questions/68449947/certbot-failing-acme-challenge-connection-refused)
+7. ./init-letsencrypt.sh
+8. ./data/nginx/app.conf 원래대로 수정
+9.  vim .env && make deploy 
