@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Union
 
 import aioredis
 import openai
-import websockets
 from fastapi import (BackgroundTasks, FastAPI, HTTPException, Request,
                      WebSocket, WebSocketDisconnect, status)
 from fastapi.exceptions import RequestValidationError

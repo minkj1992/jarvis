@@ -17,7 +17,9 @@ from unstructured.file_utils.filetype import FileType
 from unstructured.partition.auto import partition
 
 from app.exceptions import FileEmptyContentsException, InvalidFileExtException
+from infra.config import get_config
 
+cfg = get_config()
 
 class UnstructuredFileStrategy(str, Enum):
     FAST = "fast"
@@ -78,7 +80,7 @@ class JarvisFileLoader:
     @staticmethod
     async def load_and_split(file_name: str, file: IO) -> List[Document]:
         """split docs into chunks."""
-        _text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
+        _text_splitter = RecursiveCharacterTextSplitter(chunk_size=cfg.chunk_size, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
 
         docs = await JarvisFileLoader.load(file_name, file)
         return _text_splitter.split_documents(docs)

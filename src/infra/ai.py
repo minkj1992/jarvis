@@ -57,7 +57,7 @@ def _tiktoken_len(docs):
 
 async def get_docs_from_texts(texts:str):
     docs = []
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=_cfg.chunk_size, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
     for chunk in text_splitter.split_text(texts):
         docs.append(chunk)
     return docs
@@ -67,7 +67,7 @@ async def get_docs_and_metadatas_from_urls(urls):
     docs = []
     metadatas = []
     
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=_cfg.chunk_size, chunk_overlap=20, separators=["\n\n", "\n", " ", ""])
     result = await asyncio.gather(
         *[extract_doc_metadata_from_url(url) for url in urls]
     )
@@ -84,7 +84,7 @@ async def get_chain(vs: VectorStore, prompt:str)-> ConversationalRetrievalChain:
     return ConversationalRetrievalChain.from_llm(
         ChatOpenAI(
             openai_api_key=_cfg.openai_api_key, 
-            temperature=0.7, 
+            temperature=_cfg.temperature, 
             model_name="gpt-3.5-turbo",
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
         ),
@@ -128,7 +128,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
     question_generator = LLMChain(
         llm=ChatOpenAI(
             openai_api_key=_cfg.openai_api_key,
-            temperature=0,
+            temperature=_cfg.temperature,
             callback_manager=AsyncCallbackManager([question_handler]), 
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
             model_name=_cfg.qa_model,
@@ -139,7 +139,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
     
     streaming_llm = ChatOpenAI(
         streaming=True,
-        temperature=0.7,
+        temperature=_cfg.temperature,
         openai_api_key=_cfg.openai_api_key, 
         callback_manager=AsyncCallbackManager([stream_handler]), 
         request_timeout=_CHAT_OPEN_AI_TIMEOUT,
@@ -161,3 +161,4 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         callback_manager=manager,
         max_tokens_limit=_cfg.max_token_limit
     )
+

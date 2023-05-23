@@ -16,6 +16,8 @@ class Cfg(BaseSettings):
     redis_host: str
     redis_password: str
     kakao_time_out: float
+    chunk_size: int = 1000
+    temperature: float = 0
     
 
 @lru_cache()
