@@ -1,14 +1,14 @@
 import asyncio
-import logging
 import uuid
 from enum import Enum, auto
 from typing import Any, Dict
 
 from app.exceptions import InvalidRoomInputTypeException
+from app.logger import get_logger
 from infra import ai, redis
 from infra.redis import Room, update_vectorstore
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class RoomInputType(Enum):
     TEXT = auto()
@@ -29,7 +29,7 @@ async def get_a_room(room_uuid):
     try:
         room = await redis.Room.get(pk=room_uuid)
     except Exception as err:
-        logging.error(err)
+        await logger.exception(err)
         return None
     return room
 

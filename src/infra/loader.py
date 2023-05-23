@@ -2,7 +2,6 @@
 for example urls, pdf, excel, .doc file, youtube ...
 """
 
-import logging
 import mimetypes
 from enum import Enum
 from typing import IO, List

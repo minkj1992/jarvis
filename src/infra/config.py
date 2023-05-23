@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 
 from pydantic import BaseSettings
@@ -18,7 +19,12 @@ class Cfg(BaseSettings):
     kakao_time_out: float
     chunk_size: int = 1000
     temperature: float = 0
-    
+
+    def log_level(self):
+        if self.phase in ('PROD', 'DEV'):
+            return logging.INFO
+        return logging.DEBUG
+
 
 @lru_cache()
 def get_config():

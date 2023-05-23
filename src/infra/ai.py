@@ -1,12 +1,10 @@
 import asyncio
-import logging
 from typing import Any, List
 
 import tiktoken
 from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chains.chat_vector_db.prompts import (CONDENSE_QUESTION_PROMPT,
-                                                     QA_PROMPT)
+from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
@@ -15,8 +13,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import VectorStore
 from langchain.vectorstores.base import VectorStore
 
+from app.logger import get_logger
 from infra.config import get_config
 from infra.jbs4 import extract_doc_metadata_from_url
+
+logger = get_logger(__name__)
 
 _cfg = get_config()
 _CHAT_OPEN_AI_TIMEOUT=240
@@ -97,10 +98,9 @@ class MyChain(ConversationalRetrievalChain):
     async def _aget_docs(self, question: str, inputs: Any):
         try:
             docs = await self.retriever.aget_relevant_documents(question)
-            logging.error(f'Question: {question}, Inputs: {inputs}')
+            await logger.info(f'Question: {question}, Inputs: {inputs}')
         except Exception as err:
-            logging.error(err)
-            raise err
+            raise
         result = await self._reduce_tokens_below_limit(docs)
         return result
     
@@ -132,6 +132,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
             callback_manager=AsyncCallbackManager([question_handler]), 
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
             model_name=_cfg.qa_model,
+            max_retries=0,
             ),
         prompt=CONDENSE_QUESTION_PROMPT,
         verbose=True,
@@ -145,6 +146,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         request_timeout=_CHAT_OPEN_AI_TIMEOUT,
         model_name=_cfg.qa_model,
         verbose=True,
+        max_retries=0,
     )
     
     doc_chain = load_qa_chain(
@@ -161,4 +163,3 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         callback_manager=manager,
         max_tokens_limit=_cfg.max_token_limit
     )
-

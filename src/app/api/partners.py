@@ -1,11 +1,11 @@
-import logging
 from typing import List, Union
 
-from aredis_om.model import NotFoundError
+from app.logger import get_logger
 from fastapi import APIRouter, Request, status
 from pydantic import UUID4, BaseModel, Field, HttpUrl
 from starlette.responses import JSONResponse, Response
 
+logger = get_logger(__name__)
 router = APIRouter(prefix='/partners')
 
 class CreatePartnerRequest(BaseModel):
@@ -24,7 +24,7 @@ class RoomResponse(BaseModel):
 
 @router.post("/signin", status_code=status.HTTP_200_OK)
 async def signin(partner_in: CreatePartnerRequest):
-    logging.error(partner_in)
+    await logger.info(partner_in)
     ...
 
 @router.post("/signout", status_code=status.HTTP_201_CREATED)
@@ -36,7 +36,7 @@ async def signout(pk: str, response: Response):
 async def pay_callback(request: Request):
     # i.g) b'state=1&errorMessage=&mul_no=2000&payurl=http%3A%2F%2Fpayapp.kr%2F000000000000'
     pay_in = await request.body()
-    logging.error(pay_in)
+    await logger.info(pay_in)
     return JSONResponse("SUCCESS")
 
 

@@ -1,6 +1,4 @@
 import asyncio
-import json
-import logging
 import time
 from typing import Any, Dict, List, Union
 
@@ -8,18 +6,22 @@ import aioredis
 import openai
 from fastapi import (BackgroundTasks, FastAPI, HTTPException, Request,
                      WebSocket, WebSocketDisconnect, status)
-from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
+# from starlette.exceptions import WebSocketException
 from starlette.websockets import WebSocketDisconnect, WebSocketState
+from websockets import ConnectionClosed
 
+from app.logger import get_logger
 from app.services import room_service
+from app.utils import wss_close_ignore_exception
 from app.wss.callback import (QuestionGenCallbackHandler,
                               StreamingLLMCallbackHandler)
 from app.wss.schemas import ChatResponse
 from infra.config import get_config
+
+logger = get_logger(__name__)
 
 DEFAULT_CALLBACK_MSG = '생각이다 정리됐니 🤔?'
 DEFAULT_KAKAO_TIMEOUT_MSG = f"⚠️ 죄송합니다 5초만 더 생각할 시간을 주세요.\n5초가 지났으면 저를 클릭해주시고, 아래버튼에서 아래 문구를 눌러주세요.\n\n'{DEFAULT_CALLBACK_MSG}'"
@@ -44,13 +46,6 @@ async def get(request: Request, room_uuid:str):
     if room is None:
         raise HTTPException(status_code=400, detail=f"Chat room not found  room_uuid : {room_uuid}")
     return templates.TemplateResponse("index.html", {"request": request, "room_title": room.title,"base_url": cfg.base_url, "room_uuid": str(room_uuid)})
-
-@chat_server.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-	exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
-	logging.error(f"{request}: {exc_str}")
-	content = {'status_code': 10422, 'message': exc_str, 'data': None}
-	return JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 
 class UserRequest(BaseModel):
@@ -111,7 +106,7 @@ async def get_response_and_store(redis: aioredis.Redis, chat_id: str, user_messa
     # 5초 이내에 task가 완료되면 결과를 반환하고,
     # 그렇지 않으면 timeout 예외를 발생시킴
     timeout=(start_time+cfg.kakao_time_out)-time.time()
-    logging.error(f"timeout: {timeout}")
+    await logger.info(f"timeout: {timeout}")
     try:
         chat_response = await asyncio.wait_for(task, timeout=timeout)
     except asyncio.TimeoutError:
@@ -162,8 +157,8 @@ async def chat(room_uuid:str, chat_in:KakaoMessageRequest, background_tasks:Back
     user_message = chat_in.userRequest.utterance
     chat_id = f"{room_uuid}:{user_id}"
 
-    logging.error("Kakao User properties: %s", chat_in.userRequest.user.properties)
-    logging.error(f"Kakao Chat id: {chat_id}")
+    await logger.info("Kakao User properties: %s", chat_in.userRequest.user.properties)
+    await logger.info(f"Kakao Chat id: {chat_id}")
 
     response = await get_response_and_store(redis, chat_id, user_message, background_tasks, room_uuid, start_time=start_time)
     return KakaoMessageResponse(
@@ -192,9 +187,9 @@ async def callback_chat(room_uuid:str, chat_in:KakaoMessageRequest, background_t
     is_callback = True if chat_in.userRequest.callback_url else False
     chat_id = f"{room_uuid}:{user_id}"
 
-    logging.error("Kakao User properties: %s", chat_in.userRequest.user.properties)
-    logging.error(f"Kakao Chat id: {chat_id}")
-    logging.error(f"Kakao is_callback: {is_callback}")
+    await logger.info("Kakao User properties: %s", chat_in.userRequest.user.properties)
+    await logger.info(f"Kakao Chat id: {chat_id}")
+    await logger.info(f"Kakao is_callback: {is_callback}")
 
     response = await get_response_callback(redis, chat_id, user_message, background_tasks, room_uuid)
     return KakaoMessageResponse(
@@ -267,11 +262,8 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             # 3. Send Chat start message
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
-    except (WebSocketDisconnect, RuntimeError):
-        logging.error("websocket disconnect")
+    except (WebSocketDisconnect, ConnectionClosed):
+        await logger.info("websocket disconnect")
     except Exception as e:
-        logging.error(e, exc_info=True)
-    finally:
-        await websocket.close()
-
-
+        await logger.exception(e)
+        await wss_close_ignore_exception(websocket)
