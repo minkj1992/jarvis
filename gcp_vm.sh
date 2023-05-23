@@ -2,7 +2,7 @@
 # 이 스크립트는 GCP에서 가상 머신을 생성합니다.
 # e2-standard-4 = vCPU 4개, 16GB RAM
 
-# ./deploy_gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
+# ./gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
 
 # 명령줄 인수를 확인합니다.
 if [ $# -ne 4 ]; then
