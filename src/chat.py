@@ -267,10 +267,11 @@ async def websocket_endpoint(websocket: WebSocket, room_uuid:str):
             # 3. Send Chat start message
             end_resp = ChatResponse(sender="Assistant", message="", type="end")
             await websocket.send_json(end_resp.dict())
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
         logging.error("websocket disconnect")
     except Exception as e:
         logging.error(e, exc_info=True)
     finally:
         await websocket.close()
+
 
