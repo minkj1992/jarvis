@@ -99,7 +99,7 @@ $ make ssh
 2. run script to deploy vm
 
 ```bash
-$ ./deploy_gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
+$ ./gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
 ```
 
 3. [Set google cloud dns, fixed IP](https://cloud.google.com/dns/docs/zones?hl=ko&_gl=1*1hbu6r9*_ga*MTk3NjgxMjk4LjE2ODQ2Njg5Mzc.*_ga_WH2QY8WWF5*MTY4NDczNzIyNC4yLjEuMTY4NDc0MjI3OC4wLjAuMA..&_ga=2.9878517.-197681298.1684668937)
