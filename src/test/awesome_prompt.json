@@ -1,0 +1,14 @@
+{
+  "title": "Awesome prompt",
+  "urls": [
+    "https://platform.openai.com/docs/guides/fine-tuning/preparing-your-dataset",
+    "https://www.pinecone.io/learn/langchain-prompt-templates/",
+    "https://www.promptingguide.ai/introduction/tips",
+    "https://www.promptingguide.ai/introduction/tips",
+    "https://www.promptingguide.ai/introduction/examples",
+    "https://mitchellh.com/writing/prompt-engineering-vs-blind-prompting",
+    "https://prompts.chat/",
+    "https://influencermarketinghub.com/chatgpt-prompts/"
+  ],
+  "prompt": "As a GPT prompt engineer, analyze the given prompt for a fine-tuned GPT model based on the context provided below. If necessary, recommend a better prompt.\n\n!IMPORTANT: Please reply in korean but when you recommend a better prompt, you must type it in a english.\n\nContext: {context}\n\nQuestion: {question}"
+}

@@ -132,7 +132,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
             callback_manager=AsyncCallbackManager([question_handler]), 
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
             model_name=_cfg.qa_model,
-            max_retries=0,
+            max_retries=3,
             ),
         prompt=CONDENSE_QUESTION_PROMPT,
         verbose=True,
@@ -146,7 +146,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         request_timeout=_CHAT_OPEN_AI_TIMEOUT,
         model_name=_cfg.qa_model,
         verbose=True,
-        max_retries=0,
+        max_retries=3,
     )
     
     doc_chain = load_qa_chain(
@@ -161,5 +161,6 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         combine_docs_chain=doc_chain,
         question_generator=question_generator,
         callback_manager=manager,
-        max_tokens_limit=_cfg.max_token_limit
+        max_tokens_limit=_cfg.max_token_limit,
+        verbose=True
     )
