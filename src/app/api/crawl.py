@@ -1,6 +1,4 @@
-import logging
-from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Union
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, HttpUrl

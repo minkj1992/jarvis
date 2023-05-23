@@ -1,6 +1,5 @@
-import logging
-import re
-from typing import List, Union
+
+from typing import Union
 
 import requests
 import xmltodict
