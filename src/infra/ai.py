@@ -89,7 +89,7 @@ async def get_chain(vs: VectorStore, prompt:str)-> ConversationalRetrievalChain:
             model_name="gpt-3.5-turbo",
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
         ),
-        retriever=vs.as_retriever(search_kwargs={'k':4}),
+        retriever=vs.as_retriever(search_kwargs={'k':5}),
         qa_prompt=qa_prompt,
     )
 
@@ -102,6 +102,7 @@ class MyChain(ConversationalRetrievalChain):
         except Exception as err:
             raise
         result = await self._reduce_tokens_below_limit(docs)
+        await logger.info(result)
         return result
     
     async def _reduce_tokens_below_limit(self, docs: List[Any]) -> List[Any]:

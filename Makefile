@@ -17,7 +17,7 @@ destroy:
 
 deploy:
 	docker compose --file docker-compose.prod.yml down
-	docker compose --file docker-compose.prod.yml up --build -d --remove-orphans
+	docker compose --file docker-compose.prod.yml up -d --remove-orphans
 
 app-shell:
 	docker exec -it jarvis-app-1 sh
