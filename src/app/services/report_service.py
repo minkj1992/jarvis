@@ -24,16 +24,13 @@ class RelationType(Enum):
 
 async def generate_a_report(room_uuid:str, query: str):
     # TODO: creat a vectorstore with embedding
-    (room, vectorstore) = await asyncio.gather(
-        room_service.get_a_room(room_uuid),
-        redis.get_vectorstore(room_uuid)
-    )
+    vectorstore = await redis.get_vectorstore(room_uuid)
     summary = await llm.get_a_summerize_report(vectorstore, topic=query)
     await logger.info(summary)
 
-    # report = await llm.get_a_relationship_report_from_llm(vectorstore, topic=query)
-    # await logger.info(report)
-    # return report
+    report = await llm.get_a_relationship_report_from_llm(vectorstore, topic=query)
+    await logger.info(report)
+    return f'summary:{summary}\n\n########################report:{report}'
 
     
     # flare = await llm.get_a_flare_chain(vectorstore,room.prompt)

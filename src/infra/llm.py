@@ -269,13 +269,13 @@ async def get_a_refine_chain(vs: VectorStore, query:str):
     )
 
 # TODO: from chatting to variable
-summary_prompt_template = """Write a concise summary of the following chatting conversation in 1500 words:
+summary_prompt_template = """Write a concise summary of the following chatting conversation in 3000 words:
     {docs}
-CONCISE SUMMARY IN KOREAN:
+CONCISE SUMMARY IN ENGLISH:
 """
 async def get_a_summerize_report(vs: VectorStore, topic: str):
     # https://python.langchain.com/en/latest/modules/chains/index_examples/summarize.html
-    retriever = vs.as_retriever(search_kwargs={'k':3}) # TODO: upgrade k to more than 7
+    retriever = vs.as_retriever(search_kwargs={'k':1}) # TODO: upgrade k to more than 7
     docs = retriever.get_relevant_documents(topic)
     llm = ChatOpenAI(
         temperature=_cfg.temperature,
