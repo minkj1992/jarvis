@@ -35,7 +35,7 @@ async def generate_a_report(room_uuid:str, query: str):
     reports = await llm.get_a_relationship_report_from_llm(vectorstore, topic=query, summary=summary)
     for i, report in enumerate(reports):
         result += f'--------------REPORT{i+1}--------------\n'
-        reulst += report
+        result += report
         result += '-----------------------------------\n'
 
     return result
