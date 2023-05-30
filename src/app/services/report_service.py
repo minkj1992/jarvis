@@ -23,14 +23,22 @@ class RelationType(Enum):
 
 
 async def generate_a_report(room_uuid:str, query: str):
+    result = '--------------SUMMARY--------------\n'
+    
     # TODO: creat a vectorstore with embedding
     vectorstore = await redis.get_vectorstore(room_uuid)
     summary = await llm.get_a_summerize_report(vectorstore, topic=query)
     await logger.info(summary)
+    result += f'{summary}'
+    result += '\n\n'
 
-    report = await llm.get_a_relationship_report_from_llm(vectorstore, topic=query)
-    await logger.info(report)
-    return f'summary:{summary}\n\n########################report:{report}'
+    reports = await llm.get_a_relationship_report_from_llm(vectorstore, topic=query, summary=summary)
+    for i, report in enumerate(reports):
+        result += f'--------------REPORT{i+1}--------------\n'
+        reulst += report
+        result += '-----------------------------------\n'
+
+    return result
 
     
     # flare = await llm.get_a_flare_chain(vectorstore,room.prompt)
