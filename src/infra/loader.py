@@ -16,8 +16,10 @@ from unstructured.file_utils.filetype import FileType
 from unstructured.partition.auto import partition
 
 from app.exceptions import FileEmptyContentsException, InvalidFileExtException
+from app.logger import get_logger
 from infra.config import get_config
 
+logger = get_logger(__name__)
 cfg = get_config()
 
 class UnstructuredFileStrategy(str, Enum):
@@ -61,18 +63,25 @@ class JarvisFileLoader:
     async def load(file_name: str, file: IO) -> List[Document]:
         """load document from pdf bytes data"""
         mime_type = mimetypes.guess_type(file_name)[0]
-        
+
         if mime_type == "text/csv":
             ...
         else:
             try:
-                elements = partition(file=file, strategy=UnstructuredFileStrategy.FAST)
+                if mime_type in (None, ''):
+                    elements = partition(file=file, file_filename=file_name, strategy=UnstructuredFileStrategy.FAST)
+                else:
+                    elements = partition(file=file, file_filename=file_name, content_type=mime_type,strategy=UnstructuredFileStrategy.FAST)
                 if elements == []:
                     raise FileEmptyContentsException(file_name=file_name)
                 text = "\n\n".join([str(el) for el in elements])
                 metadata = {"source": file_name}
             except ValueError:
                 raise InvalidFileExtException(file_name=file_name, mime_type=mime_type)
+            except Exception as e:
+                await logger.exception(e)
+
+
         return [Document(page_content=text, metadata=metadata)]
         
 
