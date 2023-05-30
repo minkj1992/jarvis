@@ -6,14 +6,16 @@ from typing import Any, Iterable, List, Optional
 from aredis_om.connections import get_redis_connection
 from aredis_om.model import Field, HashModel
 from fastapi.concurrency import run_in_threadpool
-from langchain.embeddings import OpenAIEmbeddings
 from langchain.schema import BaseRetriever, Document
 from langchain.vectorstores.redis import Redis as RedisVectorStore
 from langchain.vectorstores.redis import RedisVectorStoreRetriever
 from pydantic import UUID4
 
+from app.logger import get_logger
 from infra import config
+from infra.llm import EmbeddingType, create_embeddings
 
+logger = get_logger(__name__)
 cfg = config.get_config()
 
 
@@ -32,31 +34,37 @@ def _get_redis_url() -> str:
     return f"redis://:{cfg.redis_password}@{cfg.redis_host}:6379"
 
 
-async def from_documents(docs, index_name:UUID4):
+async def from_documents(index_name:UUID4, docs: List[Document]):
+    embedding = create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_documents, 
         documents=docs,
-        embedding=OpenAIEmbeddings(
-            model=cfg.embedding_model,
-            openai_api_key=cfg.openai_api_key, 
-            max_retries=3
-        ),
+        embedding=embedding,
         index_name=str(index_name),
         redis_url=_get_redis_url()
     )
 
+async def from_documents_with_palm(index_name:UUID4, docs: List[Document]):
+    embedding = create_embeddings(EmbeddingType.PALM)
+    logger.info(embedding)
+
+    # return await run_in_threadpool(
+    #     func=RedisVectorStoreForAsync.from_documents, 
+    #     documents=docs,
+    #     embedding=embedding,
+    #     index_name=str(index_name),
+    #     redis_url=_get_redis_url()
+    # )
+
 
 
 async def from_texts(docs, metadatas, index_name:UUID4):
+    embedding = create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_texts, 
         texts=docs,
         metadatas=metadatas,
-        embedding=OpenAIEmbeddings(
-            model=cfg.embedding_model,
-            openai_api_key=cfg.openai_api_key, 
-            max_retries=3
-        ),
+        embedding=embedding,
         index_name=str(index_name),
         redis_url=_get_redis_url())
 
@@ -70,13 +78,10 @@ async def drop_vectorstore(index_name:UUID4):
 
 
 async def get_vectorstore(index_name:UUID4):
+    embedding = create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_existing_index,
-        embedding=OpenAIEmbeddings(
-            model=cfg.embedding_model,
-            openai_api_key=cfg.openai_api_key, 
-            max_retries=3
-        ),
+        embedding=embedding,
         index_name=str(index_name),
         redis_url=_get_redis_url()
     )

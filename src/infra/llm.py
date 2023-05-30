@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum, auto
 from typing import Any, List
 
 import tiktoken
@@ -8,6 +9,7 @@ from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
+from langchain.embeddings import OpenAIEmbeddings, VertexAIEmbeddings
 from langchain.prompts.prompt import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import VectorStore
@@ -22,7 +24,7 @@ logger = get_logger(__name__)
 _cfg = get_config()
 _CHAT_OPEN_AI_TIMEOUT=240
 
-condense_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+condense_template = """Given the following conversation and a follow up question, do not rephrase the follow up question to be a standalone question. You should assume that the question is related to Chat history.
 
 Chat History:
 {chat_history}
@@ -157,6 +159,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         callback_manager=manager,
     )
 
+
     return MyChain(
         retriever=vs.as_retriever(search_kwargs={'k':4}),
         combine_docs_chain=doc_chain,
@@ -164,4 +167,50 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
         callback_manager=manager,
         max_tokens_limit=_cfg.max_token_limit,
         verbose=True
+    )
+
+
+class EmbeddingType(Enum):
+    PALM = auto() # Google Cloud Platform Vertex AI PaLM
+    OPENAI = auto() 
+
+    
+
+
+async def create_embeddings(et: EmbeddingType):
+    """
+    VertexAIEmbeddings Args:
+        temperature: float = 0.0
+            "Sampling temperature, it controls the degree of randomness in token selection."
+        max_output_tokens: int = 128
+            "Token limit determines the maximum amount of text output from one prompt."
+        top_p: float = 0.95
+            "Tokens are selected from most probable to least until the sum of their "
+            "probabilities equals the top-p value."
+        top_k: int = 40
+            "How the model selects tokens for output, the next token is selected from "
+            "among the top-k most probable tokens."
+        project: Optional[str] = None
+            "The default GCP project to use when making Vertex API calls."
+        location: str = "us-central1"
+            "The default location to use when making API calls."
+        credentials: Any = None
+            "The default custom credentials (google.auth.credentials.Credentials) to use "
+            "when making API calls. If not provided, credentials will be ascertained from "
+            "the environment."
+    """
+    if et == EmbeddingType.PALM:
+        return VertexAIEmbeddings(
+            temperature=_cfg.temperature,
+            max_output_tokens=128,
+            top_p=0.95,
+            top_k=40,
+            project=_cfg.gcp_project_name,
+            location=_cfg.gcp_project_location,
+            credentials=_cfg.gcp_api_key,
+        )
+    return OpenAIEmbeddings(
+            model=_cfg.embedding_model,
+            openai_api_key=_cfg.openai_api_key,
+            max_retries=3
     )

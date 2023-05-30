@@ -12,7 +12,7 @@ from typing_extensions import Annotated
 from app.exceptions import RoomChainNotFoundException, RoomNotFoundException
 from app.services import room_service
 from app.services.room_service import RoomInputType
-from infra import ai, loader
+from infra import llm, loader
 from infra.redis import Room
 
 router = APIRouter(prefix='/rooms')
@@ -25,7 +25,7 @@ class CreateRoomUrlRequest(BaseModel):
     urls: List[HttpUrl] = Field(title="챗봇이 학습할 사이트들", description="POST /pages에서 url들을 추출하여 전달하면 된다.")
     
     prompt: Union[str, None] = Field(
-        default=ai.DEFAULT_PROMPT_TEMPLATE, 
+        default=llm.DEFAULT_PROMPT_TEMPLATE, 
         title="챗봇이 QA할 prompt",
     )
 
@@ -71,7 +71,7 @@ class CreateRoomTextRequest(BaseModel):
     title: str = Field(title="챗봇명")
     texts: str = Field(title="챗봇에게 더 학습시킬 정보")
     prompt: Union[str, None] = Field(
-        default=ai.DEFAULT_PROMPT_TEMPLATE, 
+        default=llm.DEFAULT_PROMPT_TEMPLATE, 
         title="챗봇이 QA할 prompt",
     )
 
@@ -108,7 +108,7 @@ async def create_a_room_with_text(room_in: CreateRoomTextRequest,):
         )
 async def create_a_room_with_file(
         title: Annotated[str, Form(description="챗봇명")], 
-        prompt: Annotated[str, Form(description="챗봇이 QA할 prompt")]=ai.DEFAULT_PROMPT_TEMPLATE,
+        prompt: Annotated[str, Form(description="챗봇이 QA할 prompt")]=llm.DEFAULT_PROMPT_TEMPLATE,
         file: UploadFile=File(...),
     ):
     room_uuid = uuid.uuid4()

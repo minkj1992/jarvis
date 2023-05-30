@@ -67,3 +67,17 @@ class InvalidRoomInputTypeException(HTTPException):
             headers=headers
         )
 
+class InvalidRelationTypeException(HTTPException):
+    def __init__(
+            self,
+            input_type,
+            headers: Optional[Dict[str, Any]] = None
+        ):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Invalid relation type {input_type}.",
+            headers=headers
+        )
+
+
+

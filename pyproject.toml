@@ -8,7 +8,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
-langchain = "^0.0.141"
 faiss-cpu = "^1.7.3"
 bs4 = "^0.0.1"
 xmltodict = "^0.13.0"
@@ -31,6 +30,8 @@ layoutparser = {extras = ["layoutmodels", "tesseract"], version = "^0.3.4"}
 youtube-transcript-api = "^0.6.0"
 pytube = "^15.0.0"
 structlog = "^23.1.0"
+google-cloud-aiplatform = "^1.25.0"
+langchain = ">=0.0.184"
 
 
 [build-system]

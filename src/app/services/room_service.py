@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from app.exceptions import InvalidRoomInputTypeException
 from app.logger import get_logger
-from infra import ai, redis
+from infra import llm, redis
 from infra.redis import Room, update_vectorstore
 
 logger = get_logger(__name__)
@@ -49,25 +49,25 @@ async def delete_a_room(room_uuid) -> int:
 async def get_a_room_chain(room_uuid):
     room = await get_a_room(room_uuid)
     vectorstore = await redis.get_vectorstore(room.uuid)
-    return await ai.get_chain(vectorstore, room.prompt)
+    return await llm.get_chain(vectorstore, room.prompt)
 
 
 async def get_a_room_chain_for_stream(room: redis.Room, question_handler, stream_handler):
     vectorstore = await redis.get_vectorstore(room.uuid)
-    qa_cahin = await ai.get_chain_stream(vectorstore, room.prompt, question_handler, stream_handler)
+    qa_cahin = await llm.get_chain_stream(vectorstore, room.prompt, question_handler, stream_handler)
     return qa_cahin
 
 
 async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: Any):
     if t == RoomInputType.TEXT:
-        texts = await ai.get_docs_from_texts(data)
+        texts = await llm.get_docs_from_texts(data)
         await redis.from_texts(
             docs=texts, 
             metadatas=None, 
             index_name=room_uuid
         )
     elif t == RoomInputType.URL:
-        docs, metadatas = await ai.get_docs_and_metadatas_from_urls(data)
+        docs, metadatas = await llm.get_docs_and_metadatas_from_urls(data)
         await redis.from_texts(
             docs=docs, 
             metadatas=metadatas, 
@@ -75,8 +75,8 @@ async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: Any):
         )
     elif t == RoomInputType.FILE:
         await redis.from_documents(
-            docs=data,
-            index_name=room_uuid
+            index_name=room_uuid,
+            docs=data
         )
     else:
         raise InvalidRoomInputTypeException(t)
@@ -86,13 +86,13 @@ async def create_a_room_chain(room_uuid:uuid.UUID, t:RoomInputType, data: Any):
 
 async def append_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -> Room:
     if input_type == RoomInputType.TEXT:
-        texts = await ai.get_docs_from_texts(data)
+        texts = await llm.get_docs_from_texts(data)
         await update_vectorstore(
             room_uuid,
             texts
         )
     elif input_type == RoomInputType.URL:
-        docs, metadatas = await ai.get_docs_and_metadatas_from_urls(data)
+        docs, metadatas = await llm.get_docs_and_metadatas_from_urls(data)
         await update_vectorstore(
             room_uuid,
             docs,
@@ -109,7 +109,7 @@ async def change_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -
     # keep room_uuid for url link 3rd party
     if input_type == RoomInputType.TEXT:
         (texts,_) = await asyncio.gather(
-            ai.get_docs_from_texts(data),
+            llm.get_docs_from_texts(data),
             delete_a_room_chain(room_uuid),
         )
         await redis.from_texts(
@@ -119,7 +119,7 @@ async def change_a_room_chain(room_uuid, input_type: RoomInputType, data: str) -
         )
     elif input_type == RoomInputType.URL:
         ((docs, metadatas), _) = await asyncio.gather(
-            ai.get_docs_and_metadatas_from_urls(data),
+            llm.get_docs_and_metadatas_from_urls(data),
             delete_a_room_chain(room_uuid),
         )
         await redis.from_texts(
