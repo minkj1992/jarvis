@@ -28,6 +28,12 @@ async def generate_a_report(room_uuid:str, query: str):
         room_service.get_a_room(room_uuid),
         redis.get_vectorstore(room_uuid)
     )
+
+    # report = await llm.get_a_qa_chain(vectorstore, query)
+    # await logger.info(report)
+    # return report
+
+    
     flare = await llm.get_a_flare_chain(vectorstore,room.prompt)
     report = flare.run(query)
     await logger.info(report)

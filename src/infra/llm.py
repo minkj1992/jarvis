@@ -8,7 +8,9 @@ from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain, FlareChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
+from langchain.chains.combine_documents.refine import RefineDocumentsChain
 from langchain.chains.llm import LLMChain
+from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings, VertexAIEmbeddings
@@ -28,39 +30,6 @@ logger = get_logger(__name__)
 
 _cfg = get_config()
 _CHAT_OPEN_AI_TIMEOUT=240
-
-condense_template = """Given the following conversation and a follow up question, do not rephrase the follow up question to be a standalone question. You should assume that the question is related to Chat history.
-
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question:"""
-CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(condense_template)
-
-
-
-DEFAULT_PROMPT_TEMPLATE = """I want you to act as a document that I am having a conversation with. Your name is 'AI Assistant'. You will provide me with answers from the given info. If the answer is not included, say exactly '음... 잘 모르겠어요.' and stop after that. Refuse to answer any question not about the info. Never break character.
-
-{context}
-
-Question: {question}
-!IMPORTANT Answer in korean:"""
-
-# https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-
-# for Codex models, text-davinci-002, text-davinci-003
-P_TOKENIZER = tiktoken.get_encoding('p50k_base') 
-# for gpt-4, gpt-3.5-turbo, text-embedding-ada-002
-C_TOKENIZER = tiktoken.get_encoding('cl100k_base') 
-
-# TODO: length_function=_tiktoken_len and find where to set tokenizer?
-def _tiktoken_len(docs):
-    docs = C_TOKENIZER.encode(
-        docs,
-        disallowed_special=()
-    )
-    return len(docs)
-
 
 
 async def get_docs_from_texts(texts:str):
@@ -101,33 +70,22 @@ async def get_chain(vs: VectorStore, prompt:str)-> ConversationalRetrievalChain:
     )
 
 
-class MyChain(ConversationalRetrievalChain):
-    async def _aget_docs(self, question: str, inputs: Any):
-        try:
-            docs = await self.retriever.aget_relevant_documents(question)
-            await logger.info(f'Question: {question}, Inputs: {inputs}')
-        except Exception as err:
-            raise
-        result = await self._reduce_tokens_below_limit(docs)
-        await logger.info(result)
-        return result
-    
-    async def _reduce_tokens_below_limit(self, docs: List[Any]) -> List[Any]:
-        num_docs = len(docs)
+condense_template = """Given the following conversation and a follow up question, do not rephrase the follow up question to be a standalone question. You should assume that the question is related to Chat history.
 
-        if self.max_tokens_limit:
-            tokens = [
-                self.combine_docs_chain.llm_chain.llm.get_num_tokens(doc.page_content)
-                for doc in docs
-            ]
-
-            token_count = sum(tokens[:num_docs])
-            while token_count > self.max_tokens_limit:
-                num_docs -= 1
-                token_count -= tokens[num_docs]
-        return docs[:num_docs]
+Chat History:
+{chat_history}
+Follow Up Input: {question}
+Standalone question:"""
+CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(condense_template)
 
 
+
+DEFAULT_PROMPT_TEMPLATE = """I want you to act as a document that I am having a conversation with. Your name is 'AI Assistant'. You will provide me with answers from the given info. If the answer is not included, say exactly '음... 잘 모르겠어요.' and stop after that. Refuse to answer any question not about the info. Never break character.
+
+{context}
+
+Question: {question}
+!IMPORTANT Answer in korean:"""
 
 async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCallbackHandler, stream_handler: AsyncCallbackHandler):
     manager = AsyncCallbackManager([])
@@ -165,7 +123,7 @@ async def get_chain_stream(vs: VectorStore, prompt:str, question_handler:AsyncCa
     )
 
 
-    return MyChain(
+    return ConversationalRetrievalChain(
         retriever=vs.as_retriever(search_kwargs={'k':4}),
         combine_docs_chain=doc_chain,
         question_generator=question_generator,
@@ -237,7 +195,6 @@ async def get_a_flare_chain(vs: VectorStore, prompt:str):
             temperature=_cfg.temperature, 
             model_name="gpt-3.5-turbo",
             request_timeout=_CHAT_OPEN_AI_TIMEOUT,
-
         ),
         retriever=compression_retriever,
         max_generation_len=164,
@@ -245,3 +202,67 @@ async def get_a_flare_chain(vs: VectorStore, prompt:str):
         min_prob=.3,
     )
     return flare
+
+
+
+refine_prompt_template = (
+    "The original question is as follows: {question}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer"
+    "(only if needed) with some more context below.\n"
+    "------------\n"
+    "{context_str}\n"
+    "------------\n"
+    "Given the new context, refine the original answer to better "
+    "answer the question."
+    "If the context isn't useful, return the original answer. Reply in Korean."
+)
+refine_prompt = PromptTemplate(
+    input_variables=["question", "existing_answer", "context_str"],
+    template=refine_prompt_template,
+)
+
+
+initial_qa_template = (
+    "A chat conversation Context is below. The conversation format is 'year month day time, speaker: message'. For example, in '2000, May 3, 3:00 AM, A: Hello', the conversation content is Hello. The content of the conversation is the most important. \n"
+    "---------------------\n"
+    "{context_str}"
+    "\n---------------------\n"
+    "You Must answer with reference to all your knowledge in addition to the information given\n"
+    "!IMPORTANT Even if you can't analyze it, guess based on your knowledge. answer unconditionally.\n"
+    "answer the question: {question}\nYour answer should be in Korean.\n"
+)
+initial_qa_prompt = PromptTemplate(
+    input_variables=["context_str", "question"], template=initial_qa_template
+)
+
+from langchain.chains import RetrievalQAWithSourcesChain
+
+
+async def get_a_qa_chain(vs: VectorStore, query:str):
+    # refs: https://python.langchain.com/en/latest/modules/chains/index_examples/question_answering.html?highlight=refine#the-refine-chain
+    llm = OpenAI(
+        temperature=_cfg.temperature,
+        openai_api_key=_cfg.openai_api_key, 
+        request_timeout=_CHAT_OPEN_AI_TIMEOUT,
+        model_name=_cfg.qa_model,
+        verbose=True,
+        max_retries=3,
+    )
+
+    qa_chain: RefineDocumentsChain = load_qa_with_sources_chain(
+        llm=llm,
+        chain_type="refine",
+        return_refine_steps=True,
+        question_prompt=initial_qa_prompt, 
+        refine_prompt=refine_prompt,
+    )
+    
+    qa = RetrievalQAWithSourcesChain(
+        combine_documents_chain=qa_chain, 
+        retriever=vs.as_retriever(search_kwargs={'k':2}))
+
+    return qa(
+        {"question": query}, 
+        return_only_outputs=True,
+    )

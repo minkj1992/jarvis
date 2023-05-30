@@ -21,6 +21,8 @@ Please answer with reference to all your knowledge in addition to the informatio
 !IMPORTANT Even if you can't analyze it, guess based on your knowledge. answer unconditionally.
 """
 
+DEFAULT_QUESTION = "View conversation transcripts, analyze content related to the relationship, personality, and intimacy between the two of you."
+
 class ReportResponse(BaseModel):
     report: str
 
