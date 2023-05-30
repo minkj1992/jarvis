@@ -17,7 +17,7 @@ class Cfg(BaseSettings):
     redis_host: str
     redis_password: str
     kakao_time_out: float
-    chunk_size: int = 1000
+    chunk_size: int = 1500
     temperature: float
 
     def log_level(self):

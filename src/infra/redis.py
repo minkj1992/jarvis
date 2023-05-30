@@ -45,16 +45,14 @@ async def from_documents(index_name:UUID4, docs: List[Document]):
     )
 
 async def from_documents_with_palm(index_name:UUID4, docs: List[Document]):
-    embedding = await create_embeddings(EmbeddingType.PALM)
-    await logger.info(embedding)
-
-    # return await run_in_threadpool(
-    #     func=RedisVectorStoreForAsync.from_documents, 
-    #     documents=docs,
-    #     embedding=embedding,
-    #     index_name=str(index_name),
-    #     redis_url=_get_redis_url()
-    # )
+    embeddings = await create_embeddings(EmbeddingType.PALM)
+    return await run_in_threadpool(
+        func=RedisVectorStoreForAsync.from_documents, 
+        documents=docs,
+        embedding=embeddings,
+        index_name=str(index_name),
+        redis_url=_get_redis_url()
+    )
 
 
 

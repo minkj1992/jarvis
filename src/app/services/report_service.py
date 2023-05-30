@@ -13,7 +13,7 @@ from infra import loader, redis
 logger = get_logger(__name__)
 
 class RelationType(Enum):
-    CRUSH = 'crush' # 썸
+    COURTSHIP = 'courtship' # 썸
     COUPLE = 'couple' # 커플, 결혼    
     FRIEND = 'friend' # 친구
     FAMILY = 'family' # 가족
@@ -27,16 +27,15 @@ async def create_a_report_chain(report_uuid:uuid.UUID, docs: List[Document]):
 
 
 
-
 async def generate_a_report(me: str, others: List[str], rt: RelationType, file: UploadFile):
     # Based on chat history, generate a report based on 4 components.
     report_uuid = uuid.uuid4()
     docs:List[Document] = await loader.from_file(file.filename, file.file)
     
-    if rt == RelationType.CRUSH:
+    if rt == RelationType.COURTSHIP:
         ...
     elif rt == RelationType.COUPLE:
-        await redis.from_documents_with_palm(report_uuid, docs)
+        await redis.from_documents(report_uuid, docs)
     else:
         raise InvalidRelationTypeException(rt)
     

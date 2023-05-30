@@ -178,7 +178,7 @@ class EmbeddingType(Enum):
     
 
 
-async def create_embeddings(et: EmbeddingType):
+async def create_embeddings(et: EmbeddingType = EmbeddingType.OPENAI):
     """
     VertexAIEmbeddings Args:
         temperature: float = 0.0
