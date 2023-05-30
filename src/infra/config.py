@@ -20,10 +20,6 @@ class Cfg(BaseSettings):
     chunk_size: int = 1000
     temperature: float
 
-    gcp_project_name:str
-    gcp_project_location:str
-    gcp_api_key:str
-
     def log_level(self):
         if self.phase in ('PROD', 'DEV'):
             return logging.INFO

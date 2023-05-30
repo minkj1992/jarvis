@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.protocols.utils import get_path_with_query_string
 
-from app.api import crawl, greet, partners, rooms
+from app.api import crawl, greet, partners, reports, rooms
 from app.logger import get_logger, init_logger
 from chat import chat_server
 from infra.config import get_config
@@ -39,7 +39,8 @@ routers = [
     greet.router,
     crawl.router,
     rooms.router,
-    partners.router
+    partners.router,
+    reports.router
 ]
 for router in routers:
     app.include_router(router)

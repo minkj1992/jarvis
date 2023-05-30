@@ -24,4 +24,4 @@ jarvisVM_key.pem
 # ssh and github in vm
 id_ed25519
 id_ed25519.pub
-
+gcp-credentials.json

@@ -3,7 +3,8 @@ from enum import Enum, auto
 from typing import Any, List
 
 import tiktoken
-from langchain.callbacks.base import AsyncCallbackHandler, AsyncCallbackManager
+from langchain.callbacks.base import AsyncCallbackHandler
+from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.llm import LLMChain
@@ -205,9 +206,6 @@ async def create_embeddings(et: EmbeddingType):
             max_output_tokens=128,
             top_p=0.95,
             top_k=40,
-            project=_cfg.gcp_project_name,
-            location=_cfg.gcp_project_location,
-            credentials=_cfg.gcp_api_key,
         )
     return OpenAIEmbeddings(
             model=_cfg.embedding_model,

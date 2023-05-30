@@ -13,11 +13,11 @@ from infra import loader, redis
 logger = get_logger(__name__)
 
 class RelationType(Enum):
-    CRUSH = auto() # 썸
-    COUPLE = auto() # 커플, 결혼    
-    FRIEND = auto() # 친구
-    FAMILY = auto() # 가족
-    BUSINESS = auto() # 비즈니스
+    CRUSH = 'crush' # 썸
+    COUPLE = 'couple' # 커플, 결혼    
+    FRIEND = 'friend' # 친구
+    FAMILY = 'family' # 가족
+    BUSINESS = 'business' # 비즈니스
 
 async def create_a_report_chain(report_uuid:uuid.UUID, docs: List[Document]):
     await redis.from_documents(

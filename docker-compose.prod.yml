@@ -19,6 +19,7 @@ services:
       - "--requirepass ${REDIS_PASSWORD}"
     networks:
       - backend
+  # TODO: update docker image
   app:
     image: jarvisgptacr.azurecr.io/jarvis_app:v1
     container_name: jarvis-api
@@ -30,6 +31,8 @@ services:
       - "8080"
     ports:
       - "8080:8080"
+    secrets:
+      - gcp-credentials
     env_file:
       - .env
     depends_on:
@@ -81,3 +84,6 @@ volumes:
     driver: local
 networks:
   backend:
+secrets:
+  gcp-credentials:
+    file: ./gcp-credentials.json

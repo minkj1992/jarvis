@@ -35,7 +35,7 @@ def _get_redis_url() -> str:
 
 
 async def from_documents(index_name:UUID4, docs: List[Document]):
-    embedding = create_embeddings(EmbeddingType.OPENAI)
+    embedding = await create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_documents, 
         documents=docs,
@@ -45,8 +45,8 @@ async def from_documents(index_name:UUID4, docs: List[Document]):
     )
 
 async def from_documents_with_palm(index_name:UUID4, docs: List[Document]):
-    embedding = create_embeddings(EmbeddingType.PALM)
-    logger.info(embedding)
+    embedding = await create_embeddings(EmbeddingType.PALM)
+    await logger.info(embedding)
 
     # return await run_in_threadpool(
     #     func=RedisVectorStoreForAsync.from_documents, 
@@ -59,7 +59,7 @@ async def from_documents_with_palm(index_name:UUID4, docs: List[Document]):
 
 
 async def from_texts(docs, metadatas, index_name:UUID4):
-    embedding = create_embeddings(EmbeddingType.OPENAI)
+    embedding = await create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_texts, 
         texts=docs,
@@ -78,7 +78,7 @@ async def drop_vectorstore(index_name:UUID4):
 
 
 async def get_vectorstore(index_name:UUID4):
-    embedding = create_embeddings(EmbeddingType.OPENAI)
+    embedding = await create_embeddings(EmbeddingType.OPENAI)
     return await run_in_threadpool(
         func=RedisVectorStoreForAsync.from_existing_index,
         embedding=embedding,
