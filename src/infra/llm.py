@@ -2,16 +2,20 @@ import asyncio
 from enum import Enum, auto
 from typing import Any, List
 
+import langchain
 import tiktoken
 from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.callbacks.manager import AsyncCallbackManager
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, FlareChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.llm import LLMChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings, VertexAIEmbeddings
+from langchain.llms import OpenAI
 from langchain.prompts.prompt import PromptTemplate
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import VectorStore
 from langchain.vectorstores.base import VectorStore
@@ -212,3 +216,32 @@ async def create_embeddings(et: EmbeddingType = EmbeddingType.OPENAI):
             openai_api_key=_cfg.openai_api_key,
             max_retries=3
     )
+
+
+async def get_a_flare_chain(vs: VectorStore, prompt:str):
+    # Compress
+    llm = OpenAI(temperature=0)
+    compressor = LLMChainExtractor.from_llm(llm)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, 
+        base_retriever=vs.as_retriever(search_kwargs={'k':4})
+    )
+
+    # TODO: use room prompt
+    langchain.verbose = True
+    # TODO: output with korean
+    flare = FlareChain.from_llm(
+        llm=ChatOpenAI(
+            verbose=True,
+            openai_api_key=_cfg.openai_api_key, 
+            temperature=_cfg.temperature, 
+            model_name="gpt-3.5-turbo",
+            request_timeout=_CHAT_OPEN_AI_TIMEOUT,
+
+        ),
+        retriever=compression_retriever,
+        max_generation_len=164,
+        max_iter=4,
+        min_prob=.3,
+    )
+    return flare

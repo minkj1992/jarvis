@@ -1,14 +1,14 @@
+import asyncio
 import uuid
 from enum import Enum, auto
 from typing import List
 
 from fastapi import UploadFile
-from langchain.docstore.document import Document
 
 from app.exceptions import InvalidRelationTypeException
 from app.logger import get_logger
 from app.services import room_service
-from infra import loader, redis
+from infra import llm, redis
 
 logger = get_logger(__name__)
 
@@ -19,25 +19,28 @@ class RelationType(Enum):
     FAMILY = 'family' # 가족
     BUSINESS = 'business' # 비즈니스
 
-async def create_a_report_chain(report_uuid:uuid.UUID, docs: List[Document]):
-    await redis.from_documents(
-        index_name=report_uuid,
-        docs=docs,       
+
+
+
+async def generate_a_report(room_uuid:str, query: str):
+    # TODO: creat a vectorstore with embedding
+    (room, vectorstore) = await asyncio.gather(
+        room_service.get_a_room(room_uuid),
+        redis.get_vectorstore(room_uuid)
     )
+    flare = await llm.get_a_flare_chain(vectorstore,room.prompt)
+    report = flare.run(query)
+    await logger.info(report)
+    return report
 
-
-
-async def generate_a_report(me: str, others: List[str], rt: RelationType, file: UploadFile):
-    # Based on chat history, generate a report based on 4 components.
-    report_uuid = uuid.uuid4()
-    docs:List[Document] = await loader.from_file(file.filename, file.file)
+    # if rt == RelationType.COURTSHIP:
+    #     ...
+    # elif rt == RelationType.COUPLE:
+        ## Based on chat history, generate a report based on 4 components.
+        # report_uuid = uuid.uuid4()
+        # docs:List[Document] = await loader.from_file(file.filename, file.file)
+        # await redis.from_documents(report_uuid, docs)
+    # else:
+    #     raise InvalidRelationTypeException(rt)
     
-    if rt == RelationType.COURTSHIP:
-        ...
-    elif rt == RelationType.COUPLE:
-        await redis.from_documents(report_uuid, docs)
-    else:
-        raise InvalidRelationTypeException(rt)
-    
-    return report_uuid
     

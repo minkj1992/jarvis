@@ -21,7 +21,7 @@ async def create_a_room(room_uuid, title, prompt):
     await room.save()
     return room_uuid
 
-async def get_a_room(room_uuid):
+async def get_a_room(room_uuid) -> Room:
     try:
         room_uuid = uuid.UUID(room_uuid)
     except ValueError:
