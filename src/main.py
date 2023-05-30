@@ -72,6 +72,7 @@ async def logging_request_middleware(request: Request, call_next) -> Response:
 
     start_time = time.perf_counter_ns()
     
+
     try:
         response: Response = await call_next(request)
     except RequestValidationError as ex:
@@ -79,9 +80,9 @@ async def logging_request_middleware(request: Request, call_next) -> Response:
         await error_logger.exception(f"{request}: {exc_str}")
         content = {'status_code': 10422, 'message': exc_str, 'data': None}
         response = JSONResponse(content=content, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
-    except Exception:
+    except Exception as e:
         await error_logger.exception(f"Uncaught Exception")
-        response = JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        response = JSONResponse(content=repr(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     finally:
         # set X-Request-ID
         response.headers[request_uuid_key] = request_id
