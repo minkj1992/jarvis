@@ -12,6 +12,7 @@ from langchain.chains.combine_documents.refine import RefineDocumentsChain
 from langchain.chains.llm import LLMChain
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.chains.question_answering import load_qa_chain
+from langchain.chains.summarize import load_summarize_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings, VertexAIEmbeddings
 from langchain.llms import OpenAI
@@ -239,7 +240,7 @@ initial_qa_prompt = PromptTemplate(
 from langchain.chains import RetrievalQAWithSourcesChain
 
 
-async def get_a_qa_chain(vs: VectorStore, query:str):
+async def get_a_refine_chain(vs: VectorStore, query:str):
     # refs: https://python.langchain.com/en/latest/modules/chains/index_examples/question_answering.html?highlight=refine#the-refine-chain
     llm = OpenAI(
         temperature=_cfg.temperature,
@@ -266,3 +267,81 @@ async def get_a_qa_chain(vs: VectorStore, query:str):
         {"question": query}, 
         return_only_outputs=True,
     )
+
+# TODO: from chatting to variable
+summary_prompt_template = """Write a concise summary of the following chatting conversation in 1500 words:
+    {docs}
+CONCISE SUMMARY IN KOREAN:
+"""
+async def get_a_summerize_report(vs: VectorStore, topic: str):
+    # https://python.langchain.com/en/latest/modules/chains/index_examples/summarize.html
+    retriever = vs.as_retriever(search_kwargs={'k':3}) # TODO: upgrade k to more than 7
+    docs = retriever.get_relevant_documents(topic)
+    llm = ChatOpenAI(
+        temperature=_cfg.temperature,
+        openai_api_key=_cfg.openai_api_key, 
+        request_timeout=_CHAT_OPEN_AI_TIMEOUT,
+        model_name=_cfg.qa_model,
+        verbose=True,
+        max_retries=3,
+    )
+
+    PROMPT = PromptTemplate(template=summary_prompt_template, input_variables=["docs"])
+    chain = load_summarize_chain(
+        llm=llm, 
+        chain_type="map_reduce", # chain_type=refine
+        combine_document_variable_name="docs",
+        map_reduce_document_variable_name="docs",
+        map_prompt=PROMPT, 
+        combine_prompt=PROMPT
+    )
+    return chain({"input_documents": docs}, return_only_outputs=True)
+
+
+
+
+llm_prompt_template = """Use the CONVERSATION CONTEXT below to write a 1500 ~ 2500 words report about the topic below.
+    Determine the interset to be analyzed in detail with the TOPIC given below, and judge the flow of CONVERSATION CONTEXT based on the SUMMARY and interpret it according to the TOPIC.
+    Create a report related to the TOPIC by referring to the CONVERSATION CONTEXT.
+    The CONVERSATION CONTEXT format is 'year month day time, speaker: message'.
+    
+    For example, in '2000, May 3, 3:00 AM, A: Hello', the conversation content is Hello. 
+    The content of the conversation is the most important.
+    Please answer with reference to all your knowledge in addition to the information given by (TOPIC and SUMMARY and CONVERSATION CONTEXT). 
+    
+    !IMPORTANT Even if you can't analyze it, guess based on your knowledge. answer unconditionally.
+    !IMPORTANT A REPORT must be in Korean.
+
+    TOPIC: {topic}
+
+    SUMMARY: {summary}
+    
+    CONVERSATION CONTEXT: {context}
+    
+    Answer in korean REPORT:"""
+
+REPORT_PROMPT = PromptTemplate(
+    template=llm_prompt_template, input_variables=["summary", "context", "topic"]
+)
+
+# https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_text_generation.html
+async def get_a_relationship_report_from_llm(vs: VectorStore, topic: str, summary:str):
+    llm = ChatOpenAI(
+        temperature=_cfg.temperature,
+        openai_api_key=_cfg.openai_api_key, 
+        request_timeout=_CHAT_OPEN_AI_TIMEOUT,
+        model_name=_cfg.qa_model,
+        verbose=True,
+        max_retries=3,
+    )
+    chain = LLMChain(llm=llm, prompt=REPORT_PROMPT)
+
+    retriever = vs.as_retriever(search_kwargs={'k':2})
+    docs = retriever.get_relevant_documents(topic)
+    
+    inputs = [{'summary':summary, 'context': doc.page_content, "topic": topic} for doc in docs]
+    report = await chain.aapply(inputs)
+        
+    await logger.info(report)
+    return report
+    

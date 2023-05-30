@@ -21,7 +21,7 @@ Please answer with reference to all your knowledge in addition to the informatio
 !IMPORTANT Even if you can't analyze it, guess based on your knowledge. answer unconditionally.
 """
 
-DEFAULT_QUESTION = "View conversation transcripts, analyze content related to the relationship, personality, and intimacy between the two of you."
+DEFAULT_QUESTION = "Clearly analyze the relationship and personality of the two people in the chat conversation and whether they are a couple or friends."
 
 class ReportResponse(BaseModel):
     report: str
@@ -30,7 +30,7 @@ class ReportResponse(BaseModel):
 
 class CreateReportRequest(BaseModel):
     query: Union[str, None] = Field(
-        default=DEFAULT_QUERY, 
+        default=DEFAULT_QUESTION, 
         title="보고서에 질문한 내용",
     )
 
