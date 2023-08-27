@@ -130,6 +130,85 @@ async def create_a_room_with_file(
 
     return RoomResponse(room_uuid=saved_room_uuid)
 
+from langchain.docstore.document import Document
+from langchain.document_loaders import YoutubeLoader
+
+
+class YoutubeVideoLoader(YoutubeLoader):
+    def load(self):
+        """Load documents."""
+        try:
+            from youtube_transcript_api import (NoTranscriptFound,
+                                                TranscriptsDisabled,
+                                                YouTubeTranscriptApi)
+        except ImportError:
+            raise ImportError(
+                "Could not import youtube_transcript_api python package. "
+                "Please install it with `pip install youtube-transcript-api`."
+            )
+
+        metadata = {"source": self.video_id}
+
+        if self.add_video_info:
+            video_info = self._get_video_info()
+            metadata.update(video_info)
+
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(self.video_id)
+        except TranscriptsDisabled:
+            ...
+
+        return None
+        try:
+            transcript = transcript_list.find_transcript([self.language])
+        except NoTranscriptFound:
+            en_transcript = transcript_list.find_transcript(["en"])
+            transcript = en_transcript.translate(self.language)
+
+        transcript_pieces = transcript.fetch()
+
+        transcript = " ".join([t["text"].strip(" ") for t in transcript_pieces])
+
+        return [Document(page_content=transcript, metadata=metadata)]
+
+
+class CreateRoomYoutubeRequest(BaseModel):
+    # TODO:
+    # partner_uuid: UUID4
+    title: str = Field(title="챗봇명")
+
+    youtube_url: HttpUrl = Field(title="Youtube video URL")
+    
+    prompt: Union[str, None] = Field(
+        default=llm.DEFAULT_PROMPT_TEMPLATE, 
+        title="챗봇이 QA할 prompt",
+    )
+@router.post(
+        "/youtube", 
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=RoomResponse,
+        )
+async def create_a_room_with_youtube_video_url(room_in: CreateRoomYoutubeRequest,):
+    loader = YoutubeVideoLoader.from_youtube_url(room_in.youtube_url, add_video_info=True)
+
+    docs = loader.load()
+
+
+    # room_uuid = uuid.uuid4()
+    # await asyncio.gather(
+    #     room_service.create_a_room(
+    #         room_uuid,
+    #         room_in.title,
+    #         room_in.prompt,
+    #     ),
+    #     room_service.create_a_room_chain(
+    #         room_uuid,
+    #         RoomInputType.URL,
+    #         room_in.urls
+    #     )
+    # )
+    return RoomResponse(room_uuid="a2a26e0c-0e88-4204-b6d6-3b0a5f5b9557")
+
 
 
 class PatchChatRoomByTextRequest(BaseModel):
@@ -223,4 +302,3 @@ async def delete_a_room(room_uuid: str,):
 
     if is_chain_deleted is False:
         raise RoomChainNotFoundException(room_pk=room_uuid)
-    

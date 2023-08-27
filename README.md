@@ -1,59 +1,62 @@
-# `jarvis`
+# `Jarvis` 
 
-> "personally, customized bot with langchain and gpt4"
+> Domain-Specific ChatGPT Platform.
+
+## Overview
+Jarvis is a cutting-edge platform that integrates ChatGPT with domain-specific knowledge. By vectorizing vast amounts of domain knowledge, Jarvis allows users to utilize GPT in context with domain-specific information. Furthermore, with the power of fine-tuning, Jarvis offers a more customized GPT experience tailored to the specific needs of its users.
+
+## Stack
+- Domain Knowledge Utilization: `Langchain` / `Openai`
+- Vectorestore / Database: `Redis`
+- WSS server / API server: `Fastapi` / `Nginx`
+- For Report: [Report Jupyter Notebook Repo](https://github.com/minkj1992/jupyter-notebook-docker-compose/tree/main)
 
 
+## Features
+1. **Domain Knowledge Integration**: Jarvis transforms extensive domain knowledge into vectorstore, enabling GPT to operate within a specific domain context.
+2. **Customizable GPT**: Through fine-tuning, users can have a GPT experience that is more aligned with their specific requirements.
+3. **Chatbot Service**: Designed with use-cases such as onboarding part-time staff for solo entrepreneurs and facilitating conversations with book authors.
+4. **Report Generation**: Using the user's chat conversation history as input, Jarvis allows users to select a topic of interest. It then provides an in-depth report, analyzing the topic across 3-4 subtopics.
+
+## Services
+
+1. **Chatbot**: Ideal for scenarios like assisting self-employed individuals in onboarding part-time workers or enabling conversations with book authors.
+
+2. **Report Writing**: Users can input their existing chat conversation history, and upon selecting a desired topic, Jarvis will generate a comprehensive report, breaking down the topic into 3-4 detailed subtopics.
+<div align='center'>
 
 <div align='center'>
+
 <h4>1. Swagger</h4>
-<img src="docs/swagger.png" >
-<img src="docs/swagger2.png" >
-
-<h4>2. Vectorstore redis</h4>
-<img src="docs/redis-commander.png" >
-<img src="docs/redis-commander2.png" >
-
-<h4>3. Use case</h4>
-</div>
-
-
 <table width="100%" border="0">
-  <tr>    
-  <td><img src="docs/wss1.png" alt="" align="left" /></td>
-  <td><img src="docs/wss2.png" alt="" align="right"/></td>
+  <tr>
+    <td><img src="docs/swagger.png" alt="Swagger 1" width="300px"></td>
+    <td><img src="docs/swagger2.png" alt="Swagger 2" width="300px"></td>
   </tr>
 </table>
 
-<div align="center">
-    <img width="40%" src="docs/kakao.jpeg" alt="" align="center" />
+<h4>2. Vectorstore redis</h4>
+<table width="100%" border="0">
+  <tr>
+    <td><img src="docs/redis-commander.png" alt="Redis Commander 1" height="200px"></td>
+    <td><img src="docs/redis-commander2.png" alt="Redis Commander 2" height="200px"></td>
+  </tr>
+</table>
+
+<h4>3. Use case</h4>
+<table width="100%" border="0">
+  <tr>
+    <td><img src="docs/wss1.png" alt="Use Case 1" height="200px"></td>
+    <td><img src="docs/wss2.png" alt="Use Case 2" height="200px"></td>
+    <td><img src="docs/kakao.jpeg" alt="Kakao" height="200px"></td>
+  </tr>
+</table>
+
 </div>
 
+## Init && Deploy
 
-1. Infra
-    - [x] fastapi serving
-    - [x] vector database: FAISS to [milvus](https://milvus.io/)
-        - [x] redis-stack-server
-        - [ ] pinecone
-    - [x] azure deploy
-2. Auth
-    - [ ] oauth2 login
-    - [ ] manage quota by partner_uuid
-3. Domain
-    - [x] CRUD `/room`
-    - [x] Web socket chat
-    - [ ] Payment
-4. Etc
-    - [x] dotenv python
-    - [x] manage chatGPT credit issue (429)
-    - [x] nginx ssl with let's encrypt (auto renewal by 3month)
-    - [x] deploy on azure
-5. Todo
-    - kakao callback
-    - prompt template
-    - issue handling
-    - logger monitoring
-
-## init
+### Initialization
 
 ```sh
 $ poetry init
@@ -61,54 +64,51 @@ $ poetry env use python3.8
 $ poetry add langchain faiss-cpu
 ```
 
-- vscode setting
+### Vscode
 
 ```sh
 $ poetry config virtualenvs.in-project true
 $ poetry config virtualenvs.path "./.venv"
 ```
 
-## local
+### 🚀 Local Deploy
 
 ```sh
 $ make up
 ```
 
-## deploy with azure vm
+### 🚀 Azure VM Deploy
 
 
 ```sh
 $ make prod-down && make deploy
-```
 
-## ssh
-
-```sh
+# ssh
 $ make ssh
 ```
 
 
-## refs
-- [wss](https://github.com/tiangolo/fastapi/issues/3008#issuecomment-1031293342)
+### 🚀 Google Cloud Deploy
 
+1. **Preparation**:
+   - Install `gcloud-cli`: [Official Installation Guide](https://cloud.google.com/sdk/docs/install?hl=en)
+2. **VM Deployment**:
+   - Execute the script to deploy the VM:
+     ```sh
+     $ ./gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
+     ```
+3. **DNS & IP Configuration**:
+   - Configure Google Cloud DNS and set a fixed IP:
+     - [Google Cloud DNS Documentation](https://cloud.google.com/dns/docs/zones?hl=ko)
+     - [Google IP Configuration](./docs/google-ip.png)
+4. **Nameserver & IP Settings**:
+   - to set the Nameserver and IP from [가비아](https://customer.gabia.com/manual/domain/286/991).
+5. **VM Initialization**: `$ ./init_vm.sh`
+6. **SSL Configuration**:
+    - Modify `./data/nginx/app.conf` by commenting out the HTTPS section. This is essential for generating the `.pem` file using the `lets encrypt` script.
+    - ⚠️ **Note**: If you skip this step, nginx might not find the SSL and won't run, leading to a [`connection refused error`](https://stackoverflow.com/questions/68449947/certbot-failing-acme-challenge-connection-refused).
 
-## deploy with Google Cloud vm
-> https://lemontia.tistory.com/1074
-
-1. pre-install: gcloud-cli: https://cloud.google.com/sdk/docs/install?hl=en
-2. run script to deploy vm
-
-```bash
-$ ./gcp_vm.sh tidy-amplifier-387210 asia-northeast3-a e2-standard-4 jarvis-ins
-```
-
-3. [Set google cloud dns, fixed IP](https://cloud.google.com/dns/docs/zones?hl=ko&_gl=1*1hbu6r9*_ga*MTk3NjgxMjk4LjE2ODQ2Njg5Mzc.*_ga_WH2QY8WWF5*MTY4NDczNzIyNC4yLjEuMTY4NDc0MjI3OC4wLjAuMA..&_ga=2.9878517.-197681298.1684668937)
-    - ![](./docs/google-ip.png)
-4. Set Nameserver and Set IP
-    - (i.g [가비아](https://customer.gabia.com/manual/domain/286/991))
-5. `./init_vm.sh`
-6. ./data/nginx/app.conf의 https 파트 주석 처리 (lets encrypt 스크립트로 pem 만들기 위해서)
-    - [만약 주석처리하지 않는 경우, nginx가 ssl을 찾지 못해 실행되지 않아, `connection refused error`가 발생한다.](https://stackoverflow.com/questions/68449947/certbot-failing-acme-challenge-connection-refused)
-7. ./init-letsencrypt.sh
-8. ./data/nginx/app.conf 원래대로 수정
-9.  vim .env && make deploy 
+7. **SSL Certificate Initialization**: `$ ./init-letsencrypt.sh`
+8. **Revert SSL Configuration**:
+    - Restore the original settings of `./data/nginx/app.conf`.
+9. **Environment Setup & Deployment**: `$ vim .env && make deploy`

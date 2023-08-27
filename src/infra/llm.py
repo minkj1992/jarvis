@@ -1,9 +1,7 @@
 import asyncio
 from enum import Enum, auto
-from typing import Any, List
 
 import langchain
-import tiktoken
 from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.chains import ConversationalRetrievalChain, FlareChain
@@ -305,7 +303,7 @@ llm_prompt_template = """Use the CONVERSATION CONTEXT below to write a 1500 ~ 25
     Create a report related to the TOPIC by referring to the CONVERSATION CONTEXT.
     The CONVERSATION CONTEXT format is 'year month day time, speaker: message'.
     
-    For example, in '2000, May 3, 3:00 AM, A: Hello', the conversation content is Hello. 
+    For example, in 'A: Hello', the conversation content is Hello. 
     The content of the conversation is the most important.
     Please answer with reference to all your knowledge in addition to the information given by (TOPIC and SUMMARY and CONVERSATION CONTEXT). 
     
