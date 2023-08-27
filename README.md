@@ -25,8 +25,6 @@ Jarvis is a cutting-edge platform that integrates ChatGPT with domain-specific k
 2. **Report Writing**: Users can input their existing chat conversation history, and upon selecting a desired topic, Jarvis will generate a comprehensive report, breaking down the topic into 3-4 detailed subtopics.
 <div align='center'>
 
-<div align='center'>
-
 <h4>1. Swagger</h4>
 <table width="100%" border="0">
   <tr>
